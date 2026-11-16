@@ -648,7 +648,7 @@ label.fl{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--m
   <div class="row"><label>اسم العميل (المرخَّص له)<input id="nCn"></label><label>اسم الشركة / المؤسسة<input id="nCo"></label><label>العنوان / المحافظة<input id="nAddr"></label></div>
   <div class="row" style="margin-top:8px"><label>اسم المدير<input id="nMgr"></label><label>صفة المدير<input id="nMgrT"></label></div>
   <label style="display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mut);margin-top:8px">فروع العميل (اختياري، كل فرع في سطر)<textarea id="nBr" style="min-height:70px"></textarea></label>
-  <div class="row" style="margin-top:8px"><label>نوع النسخة<select id="nType"><option value="t">تجريبية</option><option value="f">كاملة مفعّلة</option></select></label><label id="nDaysL">أيام التجربة<input id="nDays" type="number" value="7" min="1"></label><label>صيغة التسليم<select id="nOut"><option value="h">ملف HTML</option><option value="z">حزمة تثبيت (ZIP)</option><option value="b">الاثنان</option></select></label><button class="btn ok" id="nMake">⬇️ إنشاء وتنزيل النسخة</button></div>
+  <div class="row" style="margin-top:8px"><label>نوع النسخة<select id="nType"><option value="t">تجريبية (أيام)</option><option value="s">اشتراك (أشهر)</option><option value="f">كاملة مفعّلة</option></select></label><label id="nDaysL">أيام التجربة<input id="nDays" type="number" value="7" min="1"></label><label id="nMonL" class="hide">عدد أشهر الاشتراك<select id="nMon"><option>1</option><option>2</option><option selected="">3</option><option>6</option><option>12</option><option>24</option></select></label><label>صيغة التسليم<select id="nOut"><option value="h">ملف HTML</option><option value="z">حزمة تثبيت (ZIP)</option><option value="b">الاثنان</option></select></label><button class="btn ok" id="nMake">⬇️ إنشاء وتنزيل النسخة</button></div>
   <p class="muted">النسخة تحمل هوية البرنامج وبيانات المصمم الحالية. أي تعديل لاحق على البرنامج يحتاج إنشاء النسخة من جديد.</p>
  </div>
  <div class="card master-only">
@@ -2115,14 +2115,27 @@ function applyBrand(){
 
 /* ---------- الترخيص والتجربة ---------- */
 let LS={};
+/* رموز الاشتراك: تاريخ الانتهاء (YYMMDD) + توقيع مرتبط برقم النسخة */
+const subKey=(id,k)=>k||H('sub|'+id);
+function subSig(id,k,exp){const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789',h=H(id+'|'+subKey(id,k)+'|'+exp);let o='';for(let i=0;o.length<8;i++){o+=A[(h.charCodeAt(i%h.length)*31+i*7)%A.length]}return o}
+const subCode=(id,k,exp)=>{const g=subSig(id,k,exp);return `${exp}-${g.slice(0,4)}-${g.slice(4,8)}`};
+const ymd=d=>String(d.getFullYear()).slice(2)+pad(d.getMonth()+1)+pad(d.getDate());
+const ymdDate=e=>new Date(2000+ +e.slice(0,2),+e.slice(2,4)-1,+e.slice(4,6),23,59,59);
+function addMonths(d,m){const x=new Date(d);const day=x.getDate();x.setMonth(x.getMonth()+m);if(x.getDate()<day)x.setDate(0);return x}
 function licState(){
  if(!LIC.m)return{full:true};
  const L=lsGet(LKEY,{});
  if(L.code&&H(LIC.id+'|'+L.code)===LIC.ah)return{full:true};
- if(!LIC.d)return{full:true};
  const now=Date.now();if(!L.first)L.first=now;
- if(L.last&&now<L.last-864e5){lsSet(LKEY,L);return{trial:true,ok:false,left:0,clock:true}}
+ if(L.last&&now<L.last-864e5){lsSet(LKEY,L);return{trial:!!LIC.d,sub:!LIC.d,ok:false,left:0,clock:true}}
  L.last=Math.max(L.last||0,now);lsSet(LKEY,L);
+ /* اشتراك: من النسخة نفسها أو من رمز تجديد صالح */
+ let exp=LIC.sx?ymdDate(LIC.sx).getTime():0;
+ (L.subs||[]).forEach(c=>{const e=c.slice(0,6);if(subSig(LIC.id,LIC.k,e)===c.slice(6))exp=Math.max(exp,ymdDate(e).getTime())});
+ if(exp){const left=Math.ceil((exp-now)/864e5);
+  if(left>0||!LIC.d)return{sub:true,ok:left>0,left:Math.max(0,left),exp};
+ }
+ if(!LIC.d)return{full:true};
  const end=Math.min(L.first+LIC.d*864e5,new Date(LIC.is+'T00:00:00').getTime()+(LIC.d+14)*864e5);
  const left=Math.ceil((end-now)/864e5);
  return{trial:true,ok:left>0,left:Math.max(0,left)};
@@ -2131,15 +2144,17 @@ const isTrial=()=>!!LS.trial;
 function showLock(){
  LS=licState();applyBrand();
  $('#kInfo').innerHTML=`المرخَّص له: <b>${esc(LIC.cn||'')}</b><br>رقم النسخة: <b dir="ltr">${esc(LIC.id)}</b><br>`+
-  (LS.clock?'<b style="color:var(--bad)">⚠️ تم اكتشاف إرجاع تاريخ الجهاز. صحّح التاريخ أو فعّل النسخة.</b>':LS.ok?`نسخة تجريبية — باقي <b>${LS.left}</b> يوم`:'<b style="color:var(--bad)">انتهت مدة التجربة — أدخل رمز التفعيل للمتابعة</b>');
+  (LS.clock?'<b style="color:var(--bad)">⚠️ تم اكتشاف إرجاع تاريخ الجهاز. صحّح التاريخ أو فعّل النسخة.</b>':LS.sub?(LS.ok?`اشتراك فعّال حتى <b>${fmtDate(iso(new Date(LS.exp)))}</b> — باقي <b>${LS.left}</b> يوم<br><small class="muted">لتجديد الاشتراك أدخل رمز التجديد</small>`:`<b style="color:var(--bad)">انتهى الاشتراك في ${fmtDate(iso(new Date(LS.exp)))} — أدخل رمز التجديد للمتابعة</b>`):LS.ok?`نسخة تجريبية — باقي <b>${LS.left}</b> يوم`:'<b style="color:var(--bad)">انتهت مدة التجربة — أدخل رمز التفعيل للمتابعة</b>');
  $('#kCont').classList.toggle('hide',!LS.ok);
  $('#app').classList.add('hide');$('#loginScreen').classList.add('hide');$('#lockScreen').classList.remove('hide');
 }
 $('#kAct').onclick=()=>{
- const c=$('#kCode').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
- if(!c||H(LIC.id+'|'+c)!==LIC.ah)return toast('رمز التفعيل غير صحيح');
- const L=lsGet(LKEY,{});L.code=c;lsSet(LKEY,L);LS=licState();
- $('#lockScreen').classList.add('hide');toast('✅ تم تفعيل النسخة بنجاح');
+ const c=$('#kCode').value.toUpperCase().replace(/[^A-Z0-9]/g,'');const L=lsGet(LKEY,{});
+ if(c&&H(LIC.id+'|'+c)===LIC.ah){L.code=c;lsSet(LKEY,L);LS=licState();$('#lockScreen').classList.add('hide');toast('✅ تم تفعيل النسخة كاملة');}
+ else if(/^\d{6}[A-Z0-9]{8}$/.test(c)&&subSig(LIC.id,LIC.k,c.slice(0,6))===c.slice(6)){
+  if(ymdDate(c.slice(0,6)).getTime()<Date.now())return toast('هذا الرمز منتهي — اطلب رمزاً جديداً من المصمم');
+  L.subs=[...new Set([...(L.subs||[]),c])];lsSet(LKEY,L);LS=licState();$('#lockScreen').classList.add('hide');$('#kCode').value='';toast(`✅ تم تفعيل الاشتراك حتى ${fmtDate(iso(ymdDate(c.slice(0,6))))}`);}
+ else return toast('رمز التفعيل غير صحيح');
  curUser?enterApp():startAuth();
 };
 $('#kCode').addEventListener('keydown',e=>{if(e.key==='Enter')$('#kAct').click()});
@@ -2180,7 +2195,8 @@ function enterApp(){
  if(LIC.m&&!(LS=licState()).full&&!LS.ok)return showLock();
  $('#loginScreen').classList.add('hide');$('#lockScreen').classList.add('hide');$('#app').classList.remove('hide');
  applyRole();fillSelects();
- const tb=$('#trialBadge');tb.classList.toggle('hide',!isTrial());
+ const tb=$('#trialBadge'),subWarn=LS.sub&&LS.left<=10;tb.classList.toggle('hide',!isTrial()&&!subWarn);
+ if(subWarn){tb.textContent=`الاشتراك: باقي ${LS.left} يوم`;setTimeout(()=>toast(`⚠️ باقي ${LS.left} يوم على انتهاء الاشتراك — تواصل مع المصمم للتجديد`),700)}
  if(isTrial()){tb.textContent=`تجريبية: باقي ${LS.left} يوم`;if(LS.left<=3)setTimeout(()=>toast(`⚠️ باقي ${LS.left} يوم على انتهاء التجربة — تواصل مع المصمم للتفعيل`),700)}
  let t=curTab;if(t==='des'&&!isDes)t='day';if(TAB_PERM[t]&&!can(TAB_PERM[t]))t=['day','rep','emp','cost','set'].find(x=>can(TAB_PERM[x]))||'day';
  tab(t);updUR();
@@ -2228,7 +2244,7 @@ $('#gSaveD').onclick=()=>{
 };
 $('#gSaveCI').onclick=()=>{saveCI('g_',true);applyBrand();renderDes();toast('تم حفظ معلومات العميل')};
 function genCode(){const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789',r=new Uint32Array(12);crypto.getRandomValues(r);let c='';r.forEach((v,i)=>{c+=A[v%A.length];if(i%4===3&&i<11)c+='-'});return c}
-$('#nType').onchange=()=>$('#nDaysL').classList.toggle('hide',$('#nType').value!=='t');
+$('#nType').onchange=()=>{$('#nDaysL').classList.toggle('hide',$('#nType').value!=='t');$('#nMonL').classList.toggle('hide',$('#nType').value!=='s')};
 /* إنشاء ملف العميل (نسخة جديدة أو تحديث بنفس الرقم والرمز) */
 function emitClient(base,code,mode){
  const D=DES();
@@ -2244,29 +2260,45 @@ function emitClient(base,code,mode){
 $('#nMake').onclick=()=>{
  const cn=$('#nCn').value.trim();if(!cn)return toast('اكتب اسم العميل');
  const D=DES();if(!D.name)return toast('أكمل بيانات المصمم أولاً (الاسم على الأقل)');
- const trial=$('#nType').value==='t',days=trial?Math.max(1,parseInt($('#nDays').value)||7):0;
+ const ty=$('#nType').value,trial=ty==='t',days=trial?Math.max(1,parseInt($('#nDays').value)||7):0,sx=ty==='s'?ymd(addMonths(new Date(),+$('#nMon').value)):'',kk=H('k|'+Date.now()+Math.random()).slice(0,16);
  const id='CB-'+Date.now().toString(36).toUpperCase().slice(-5)+String(Math.floor(Math.random()*90+10)),code=genCode();
  const base={id,cn,ci:{company:$('#nCo').value.trim(),addr:$('#nAddr').value.trim(),mgr:$('#nMgr').value.trim(),mgrT:$('#nMgrT').value.trim()},d:days,is:today(),
-  setup:{branches:$('#nBr').value.split('\n').map(x=>x.trim()).filter(Boolean)}};
+  setup:{branches:$('#nBr').value.split('\n').map(x=>x.trim()).filter(Boolean)},k:kk};if(sx)base.sx=sx;
  if(!emitClient(base,code,$('#nOut').value))return;
- (Dloc.issued=Dloc.issued||[]).unshift({cn,id,date:today(),d:days,code,base,v:APP_VER});lsSet(DKEY,Dloc);renderIssued();
- modal(`<h3>✅ تم إنشاء نسخة العميل</h3><div class="lic-box">العميل: <b>${esc(cn)}</b><br>رقم النسخة: <b dir="ltr">${id}</b><br>النوع: ${trial?`تجريبية ${days} يوم`:'كاملة مفعّلة'}<br>رمز التفعيل: <b dir="ltr" style="letter-spacing:1px">${code}</b></div><p class="muted">أرسل الملف للعميل، واحتفظ بالرمز لترسله بعد الدفع. الرمز محفوظ في «النسخ الصادرة».</p>`,
+ (Dloc.issued=Dloc.issued||[]).unshift({cn,id,date:today(),d:days,code,base,v:APP_VER,k:kk,sx:sx||undefined});lsSet(DKEY,Dloc);renderIssued();
+ modal(`<h3>✅ تم إنشاء نسخة العميل</h3><div class="lic-box">العميل: <b>${esc(cn)}</b><br>رقم النسخة: <b dir="ltr">${id}</b><br>النوع: ${trial?`تجريبية ${days} يوم`:sx?`اشتراك حتى ${fmtDate(iso(ymdDate(sx)))}`:'كاملة مفعّلة'}<br>رمز التفعيل الكامل: <b dir="ltr" style="letter-spacing:1px">${code}</b></div><p class="muted">أرسل الملف للعميل، واحتفظ بالرمز لترسله بعد الدفع. الرمز محفوظ في «النسخ الصادرة».</p>`,
  [['📋 نسخ الرمز','',()=>{copyText(code)}],['إغلاق','sec']]);
 };
+function issType(x){const last=x.sx||(x.base&&x.base.sx);if(x.full)return '<b style="color:var(--ok)">كاملة (مفعّلة)</b>';if(last){const dt=ymdDate(last),l=Math.ceil((dt-Date.now())/864e5);return `اشتراك حتى ${fmtDate(iso(dt))}<br><small style="color:${l<=0?'var(--bad)':l<=10?'var(--warn)':'var(--ok)'}">${l>0?'باقي '+l+' يوم':'منتهٍ'}</small>`}return x.d?`تجريبية ${x.d} يوم`:'كاملة'}
+function renewModal(x){
+ const last=x.sx||(x.base&&x.base.sx)||'',lastD=last?ymdDate(last):null,from=lastD&&lastD>new Date()?lastD:new Date();
+ modal(`<h3>🔑 تفعيل / تجديد: ${esc(x.cn)}</h3><div class="lic-box" style="text-align:right">رقم النسخة: <b dir="ltr">${esc(x.id)}</b><br>الحالة: ${issType(x)}</div>
+  <label>نوع التفعيل<select id="rnT"><option value="1">اشتراك شهر</option><option value="2">شهرين</option><option value="3" selected>3 أشهر</option><option value="6">6 أشهر</option><option value="12">سنة</option><option value="24">سنتين</option><option value="full">كاملة (مدى الحياة)</option></select></label>
+  <label class="chk"><input type="checkbox" id="rnFrom" ${lastD&&lastD>new Date()?'checked':''}> يبدأ بعد نهاية الاشتراك الحالي ${lastD?'('+fmtDate(iso(lastD))+')':''}</label>
+  <div id="rnOut" class="lic-box hide" style="text-align:center"></div>`,
+ [['توليد الرمز','ok',()=>{
+   const t=$('#rnT').value;let code,msg;
+   if(t==='full'){code=x.code;msg='تفعيل كامل (مدى الحياة)';x.full=true}
+   else{const st=$('#rnFrom').checked&&lastD&&lastD>new Date()?lastD:new Date(),e=ymd(addMonths(st,+t));code=subCode(x.id,x.k,e);msg=`اشتراك حتى ${fmtDate(iso(ymdDate(e)))}`;x.sx=e;(x.renew=x.renew||[]).push({d:today(),e,code})}
+   lsSet(DKEY,Dloc);renderIssued();
+   const txt=`رمز تفعيل برنامج «${DES().appName}»\nالنسخة: ${x.id}\n${msg}\nالرمز: ${code}\n\nطريقة التفعيل: اضغط على شارة «تجريبية» أو «الاشتراك» أعلى البرنامج، أو افتحه عند انتهاء المدة، ثم أدخل الرمز.`;
+   $('#rnOut').classList.remove('hide');$('#rnOut').innerHTML=`${msg}<br><b dir="ltr" style="font-size:20px;letter-spacing:1px">${code}</b><div class="bar" style="justify-content:center"><button class="btn sm sec" id="rnCp">📋 نسخ</button><a class="btn sm wa" target="_blank" href="https://wa.me/?text=${encodeURIComponent(txt)}">🟢 إرسال واتساب</a></div>`;
+   $('#rnCp').onclick=()=>copyText(code);return false}],['إغلاق','sec']]);
+}
 function renderIssued(){
  const L=Dloc.issued||[];
- $('#nBody').innerHTML=L.map((x,i)=>`<tr><td>${esc(x.cn)}</td><td dir="ltr">${esc(x.id)}</td><td>${fmtDate(x.date)}${x.upd?`<br><small class="muted">آخر تحديث ${fmtDate(x.upd)}</small>`:''}</td><td>${x.d?`تجريبية ${x.d} يوم`:'كاملة'}<br><small class="muted">إصدار ${esc(x.v||'—')}</small></td><td dir="ltr"><b>${esc(x.code)}</b></td>
-  <td style="white-space:nowrap"><button class="btn sm ok" data-up="${i}">🔄 تحديث</button> <button class="btn sm sec" data-cp="${i}">📋 نسخ</button> <button class="btn sm bad" data-xd="${i}">حذف</button></td></tr>`).join('')||`<tr><td colspan="6" class="empty">لا توجد نسخ صادرة بعد</td></tr>`;
+ $('#nBody').innerHTML=L.map((x,i)=>`<tr><td>${esc(x.cn)}</td><td dir="ltr">${esc(x.id)}</td><td>${fmtDate(x.date)}${x.upd?`<br><small class="muted">آخر تحديث ${fmtDate(x.upd)}</small>`:''}</td><td>${issType(x)}<br><small class="muted">إصدار ${esc(x.v||'—')}</small></td><td dir="ltr"><b>${esc(x.code)}</b></td>
+  <td style="white-space:nowrap"><button class="btn sm" data-rn="${i}">🔑 تفعيل / تجديد</button> <button class="btn sm ok" data-up="${i}">🔄 تحديث</button> <button class="btn sm sec" data-cp="${i}">📋 نسخ</button> <button class="btn sm bad" data-xd="${i}">حذف</button></td></tr>`).join('')||`<tr><td colspan="6" class="empty">لا توجد نسخ صادرة بعد</td></tr>`;
 }
 function updateModal(x){
  modal(`<h3>🔄 تحديث نسخة: ${esc(x.cn)}</h3>
   <div class="lic-box" style="text-align:right">رقم النسخة: <b dir="ltr">${esc(x.id)}</b> — يبقى نفسه<br>رمز التفعيل: <b dir="ltr">${esc(x.code)}</b> — يبقى نفسه<br>الإصدار الحالي عنده: ${esc(x.v||'قديم')} ← الجديد: <b>${APP_VER}</b></div>
-  ${x.d?`<label class="chk"><input type="checkbox" id="upFull"> تحويلها إلى نسخة كاملة (بدون مدة تجربة)</label>`:''}
+  ${x.d||x.sx?`<label class="chk"><input type="checkbox" id="upFull"> تحويلها إلى نسخة كاملة (بدون تجربة أو اشتراك)</label>`:''}
   <label>صيغة التسليم<select id="upOut"><option value="h">ملف HTML</option><option value="z">حزمة تثبيت (ZIP)</option><option value="b">الاثنان</option></select></label>
   <p class="muted">بيانات العميل لا تُمس لأنها محفوظة في متصفحه وليست داخل الملف. يستبدل العميل الملف القديم بالجديد (أو يرفع الحزمة على نفس الرابط) ويفتحه بنفس المتصفح، فيجد كل بياناته وتفعيله كما هي.</p>`,
  [['⬇️ إصدار التحديث','ok',()=>{
-   const base=Object.assign({ci:{},setup:{branches:[]},is:x.date,d:x.d},x.base||{},{id:x.id,cn:x.cn});
-   const full=$('#upFull')&&$('#upFull').checked;if(full){base.d=0;x.d=0}
+   const base=Object.assign({ci:{},setup:{branches:[]},is:x.date,d:x.d},x.base||{},{id:x.id,cn:x.cn});if(x.k)base.k=x.k;if(x.sx)base.sx=x.sx;
+   const full=$('#upFull')&&$('#upFull').checked;if(full){base.d=0;x.d=0;delete base.sx;delete x.sx;x.full=true}
    if(!emitClient(base,x.code,$('#upOut').value))return false;
    x.base=base;x.upd=today();x.v=APP_VER;lsSet(DKEY,Dloc);renderIssued();toast('تم إصدار التحديث — أرسله للعميل');
   }],['إلغاء','sec']]);
@@ -2278,6 +2310,7 @@ $('#nAddOld').onclick=()=>modal(`<h3>➕ تسجيل نسخة صادرة سابق
    (Dloc.issued=Dloc.issued||[]).unshift({cn,id,date:today(),d:0,code,base:{id,cn,ci:{company:$('#oCo').value.trim()},d:0,is:today(),setup:{branches:[]}},v:'—'});lsSet(DKEY,Dloc);renderIssued();toast('تم تسجيل النسخة')}],['إلغاء','sec']]);
 $('#nBody').onclick=ev=>{const t=ev.target,L=Dloc.issued;
  if(t.dataset.up!=null)updateModal(L[+t.dataset.up]);
+ if(t.dataset.rn!=null)renewModal(L[+t.dataset.rn]);
  if(t.dataset.cp!=null)copyText(L[+t.dataset.cp].code);
  if(t.dataset.xd!=null)confirm2(t,()=>{L.splice(+t.dataset.xd,1);lsSet(DKEY,Dloc);renderIssued()})};
 function copyText(t){const fb=()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('تم النسخ: '+t)}catch(e){toast(t)}a.remove()};
@@ -2357,6 +2390,6 @@ $('#modal').addEventListener('click',ev=>{if(ev.target.id==='modal')closeModal()
  applyBrand();IDB.clean(60);
  LS=licState();
  if(LIC.gate&&!LIC.m){let ok=false;try{ok=sessionStorage.getItem(SKEY+'_g')===DES().ph}catch(e){}if(!ok){showGate();return}isDes=true;curUser={n:'المصمم',role:'manager',br:''};curTab='des';enterApp();return}
- if(LS.trial)showLock();else startAuth();
+ if(LS.trial||(LS.sub&&!LS.ok))showLock();else startAuth();
 })();
 </script></body></html>

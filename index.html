@@ -298,6 +298,14 @@ label.fl{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--m
  <div class="copy" id="kCopy"></div>
 </div></div>
 
+<!-- قفل البرنامج الرئيسي -->
+<div id="gateScreen" class="screen hide"><div class="lbox">
+ <img id="gLogoG" class="hide" alt=""><h2 id="gApp2"></h2><div class="muted">البرنامج الرئيسي للمصمم — محمي</div>
+ <label>كلمة مرور المصمم<div class="pw"><input id="gtPw" type="password" style="flex:1"><button type="button" class="eye" data-eye="gtPw">👁</button></div></label>
+ <button class="btn" id="gtGo">🔓 فتح</button>
+ <div class="copy" id="gtCopy"></div>
+</div></div>
+
 <!-- شاشة الدخول -->
 <div id="loginScreen" class="screen hide"><div class="lbox">
  <img id="lLogo" class="hide" alt=""><h2 id="lApp"></h2><div class="muted" id="lCo"></div>
@@ -631,6 +639,11 @@ label.fl{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--m
   <div class="bar"><button class="btn" id="gSaveCI">💾 حفظ معلومات العميل</button></div>
  </div>
  <div class="card master-only">
+  <h3>📲 تثبيت برنامجي الرئيسي على الهاتف والحاسوب</h3>
+  <p class="muted" style="margin-top:0">ينزّل نسخة من برنامجك الرئيسي <b>محمية بكلمة مرور المصمم عند كل فتح</b>، فيها هويتك وبياناتك. ارفع الحزمة على رابط https (مستودع GitHub خاص بك) ثم ثبّتها، وتصدر منها نسخ العملاء من أي جهاز.</p>
+  <div class="row"><label>الصيغة<select id="mOut"><option value="z">حزمة تثبيت (ZIP)</option><option value="h">ملف HTML</option><option value="b">الاثنان</option></select></label><button class="btn ok" id="mPkg">⬇️ تنزيل برنامجي المحمي</button></div>
+ </div>
+ <div class="card master-only">
   <h3>📦 إنشاء نسخة عميل</h3>
   <div class="row"><label>اسم العميل (المرخَّص له)<input id="nCn"></label><label>اسم الشركة / المؤسسة<input id="nCo"></label><label>العنوان / المحافظة<input id="nAddr"></label></div>
   <div class="row" style="margin-top:8px"><label>اسم المدير<input id="nMgr"></label><label>صفة المدير<input id="nMgrT"></label></div>
@@ -640,6 +653,7 @@ label.fl{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--m
  </div>
  <div class="card master-only">
   <h3>📋 النسخ الصادرة</h3>
+  <div class="bar" style="margin:0 0 6px"><button class="btn sm sec" id="nExp">⬇️ تصدير سجل النسخ</button><button class="btn sm sec" id="nImp">⬆️ استيراد سجل النسخ</button><input type="file" id="nImpF" accept=".json" class="hide"></div>
   <div class="bar" style="margin:0 0 10px"><button class="btn sm sec" id="nAddOld">➕ تسجيل نسخة صادرة سابقاً (لتحديثها لاحقاً)</button></div>
   <div style="overflow-x:auto"><table><thead><tr><th>العميل</th><th>رقم النسخة</th><th>التاريخ</th><th>النوع</th><th>رمز التفعيل</th><th></th></tr></thead><tbody id="nBody"></tbody></table></div>
  </div>
@@ -705,7 +719,7 @@ label.fl{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--m
 
 <script>
 const SRC='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
-const LIC=/*LIC*/{"id":"CB-CHEFBASHAR","cn":"مطاعم الشيف بشار","ci":{"company":"مطاعم الشيف بشار","addr":"","mgr":"","mgrT":""},"d":0,"is":"2026-11-16","setup":{"branches":["التحرير","القدس","الطابو","المعمل"]},"m":1,"ah":"28x6ukazyer","v":"2.0","des":{"ph":"1algbnove5h","name":"انس","wa":"","tg":"","appName":"نظام الحضور اليومي للفروع","logo":"","icon":"","printCopy":true,"theme":null}}/*LIC*/;
+const LIC=/*LIC*/{"id":"CB-CHEFBASHAR","cn":"مطاعم الشيف بشار","ci":{"company":"مطاعم الشيف بشار","addr":"","mgr":"","mgrT":""},"d":21,"is":"2026-11-16","setup":{"branches":["التحرير","القدس","الطابو","المعمل"]},"m":1,"ah":"28x6ukazyer","v":"2.0","des":{"ph":"1algbnove5h","name":"انس","wa":"","tg":"","appName":"نظام الحضور اليومي للفروع","logo":"","icon":"","printCopy":true,"theme":null}}/*LIC*/;
 const APP_VER='2.0';
 const BASE='chefBasharAttendance',SFX=LIC.m?'_'+LIC.id:'';
 const KEY=BASE+'_v1'+SFX,DKEY=BASE+'_des'+SFX,CKEY=BASE+'_ci'+SFX,LKEY=BASE+'_lic'+SFX,SKEY=BASE+'_ses'+SFX,NKEY=BASE+'_names'+SFX,UIKEY=BASE+'_ui';
@@ -1642,10 +1656,10 @@ function installModal(){
  let h=`<h3>📲 تثبيت البرنامج</h3>`;
  if(isStandalone())h+=`<div class="lic-box">✅ البرنامج مثبّت ويعمل كتطبيق على هذا الجهاز.</div>`;
  else if(hosted)h+=`<div class="lic-box">${instPrompt?'اضغط «تثبيت الآن» لإضافة البرنامج كتطبيق على هذا الجهاز.':steps}</div>`;
- else h+=`<div class="lic-box" style="text-align:right">البرنامج مفتوح الآن كملف على هذا الجهاز. للتثبيت كتطبيق بأيقونة يعمل بدون إنترنت على الهاتف والتابلت والحاسوب:<br>١) نزّل «حزمة التثبيت».<br>٢) ارفعها على أي استضافة https (مثل Netlify Drop أو GitHub Pages).<br>٣) افتح الرابط على كل جهاز: ${steps}</div><p class="muted">التعليمات الكاملة داخل الحزمة في ملف «طريقة_التثبيت».</p>`;
+ else h+=`<div class="lic-box" style="text-align:right">البرنامج مفتوح الآن كملف على هذا الجهاز. للتثبيت كتطبيق بأيقونة يعمل بدون إنترنت على الهاتف والتابلت والحاسوب:<br>١) نزّل «حزمة التثبيت».<br>٢) ارفعها على أي استضافة https (مثل Netlify Drop أو GitHub Pages).<br>٣) افتح الرابط على كل جهاز: ${steps}</div><p class="muted">التعليمات الكاملة داخل الحزمة في ملف «طريقة_التثبيت».${LIC.m?'':' في البرنامج الرئيسي تُنزَّل الحزمة من لوحة المصمم ← «تثبيت برنامجي الرئيسي».'}</p>`;
  const btns=[];
  if(instPrompt&&!isStandalone())btns.push(['⬇️ تثبيت الآن','ok',()=>{instPrompt.prompt();instPrompt.userChoice.finally(()=>instPrompt=null)}]);
- if(isMgr())btns.push(['📦 تنزيل حزمة التثبيت','',()=>{buildPackage(SRC,LIC.m?LIC.cn+' – '+LIC.id:'').then(b=>{downloadBlob(b,`${DES().appName}_حزمة_تثبيت.zip`.replace(/[\\/:*?"<>|]/g,'_'));toast('تم تنزيل حزمة التثبيت')})}]);
+ if(LIC.m&&isMgr())btns.push(['📦 تنزيل حزمة التثبيت','',()=>{buildPackage(SRC,LIC.m?LIC.cn+' – '+LIC.id:'').then(b=>{downloadBlob(b,`${DES().appName}_حزمة_تثبيت.zip`.replace(/[\\/:*?"<>|]/g,'_'));toast('تم تنزيل حزمة التثبيت')})}]);
  btns.push(['إغلاق','sec']);
  modal(h,btns);
 }
@@ -2269,6 +2283,21 @@ $('#nBody').onclick=ev=>{const t=ev.target,L=Dloc.issued;
 function copyText(t){const fb=()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('تم النسخ: '+t)}catch(e){toast(t)}a.remove()};
  try{navigator.clipboard.writeText(t).then(()=>toast('تم النسخ: '+t),fb)}catch(e){fb()}}
 
+/* ---------- البرنامج الرئيسي المحمي (للتثبيت) ---------- */
+function showGate(){const D=DES();$('#gApp2').textContent=D.appName;const i=$('#gLogoG');if(D.logo){i.src=D.logo;i.classList.remove('hide')}$('#gtCopy').innerHTML=copyHTML();$('#gateScreen').classList.remove('hide');setTimeout(()=>$('#gtPw').focus(),50)}
+function gateTry(){const D=DES();if(H('des|'+$('#gtPw').value)!==D.ph)return toast('كلمة مرور المصمم غير صحيحة');try{sessionStorage.setItem(SKEY+'_g',D.ph)}catch(e){}$('#gtPw').value='';$('#gateScreen').classList.add('hide');isDes=true;curUser={n:'المصمم',role:'manager',br:''};curTab='des';enterApp();toast('مرحباً بالمصمم 🎨')}
+$('#gtGo').onclick=gateTry;$('#gtPw').addEventListener('keydown',e=>{if(e.key==='Enter')gateTry()});
+function masterHTML(){const D=DES(),lic={m:0,gate:1,des:{ph:D.ph,name:D.name,wa:D.wa,tg:D.tg,appName:D.appName,logo:D.logo,icon:D.icon,printCopy:D.printCopy,theme:S.settings.theme||null}};
+ const mk='/*L'+'IC*/',parts=SRC.split(mk);if(parts.length!==3)return'';return parts[0]+mk+JSON.stringify(lic).replace(/</g,'\\u003c')+mk+parts[2]}
+$('#mPkg').onclick=()=>{if(!DES().ph)return toast('أنشئ كلمة مرور المصمم أولاً');const h=masterHTML();if(!h)return toast('خطأ في بنية الملف');
+ const fn=`${DES().appName}_البرنامج_الرئيسي`.replace(/[\\/:*?"<>|]/g,'_');
+ if($('#mOut').value!=='z')downloadBlob(new Blob([h],{type:'text/html'}),fn+'.html');
+ if($('#mOut').value!=='h')buildPackage(h,'البرنامج الرئيسي للمصمم').then(b=>downloadBlob(b,fn+'_حزمة_تثبيت.zip'));
+ toast('تم التنزيل — البرنامج يطلب كلمة مرورك عند كل فتح')};
+$('#nExp').onclick=()=>{downloadBlob(new Blob([JSON.stringify({issued:Dloc.issued||[]})],{type:'application/json'}),`سجل_النسخ_الصادرة_${today()}.json`);toast('تم تصدير سجل النسخ الصادرة')};
+$('#nImp').onclick=()=>$('#nImpF').click();
+$('#nImpF').onchange=ev=>{const f=ev.target.files[0];ev.target.value='';if(!f)return;f.text().then(t=>{try{const L=JSON.parse(t).issued;if(!Array.isArray(L))throw 0;Dloc.issued=Dloc.issued||[];let n=0;L.forEach(x=>{if(x&&x.id&&!Dloc.issued.some(y=>y.id===x.id)){Dloc.issued.push(x);n++}});lsSet(DKEY,Dloc);renderIssued();toast(`تم استيراد ${n} نسخة`)}catch(e){toast('الملف غير صالح')}})};
+
 /* ---------- التبويبات والقائمة ---------- */
 const render={day:renderDay,emp:renderEmp,rep:renderRep,cost:renderCost,set:renderSet,des:renderDes};
 function tab(t){
@@ -2327,6 +2356,7 @@ $('#modal').addEventListener('click',ev=>{if(ev.target.id==='modal')closeModal()
  {const hr=new Date().getHours();if(hr>=16||hr<2){fillSelects();$('#dShift').value='e'}}
  applyBrand();IDB.clean(60);
  LS=licState();
+ if(LIC.gate&&!LIC.m){let ok=false;try{ok=sessionStorage.getItem(SKEY+'_g')===DES().ph}catch(e){}if(!ok){showGate();return}isDes=true;curUser={n:'المصمم',role:'manager',br:''};curTab='des';enterApp();return}
  if(LS.trial)showLock();else startAuth();
 })();
 </script></body></html>

@@ -998,6 +998,31 @@ const A={
  async chShare(){const c=await chartCanvas();c.toBlob(async b=>{const f=new File([b],chartName('png'),{type:'image/png'});try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:D.st.ch.title||'الهيكل التنظيمي'});return}}catch(e){if(e&&e.name==='AbortError')return}dl(b,f.name);toast('المشاركة غير مدعومة هنا — تم تنزيل الصورة لإرسالها عبر واتساب','warn')},'image/png')},
  zm(k){const wr=$('#chWrap');if(!wr||!CHL)return;if(k==='fit'){Z=Math.min(1.5,Math.max(.1,(wr.clientWidth-16)/CHL.w));applyZoom();centerChart();return}Z=Math.max(.1,Math.min(3,Z*(k==='+'?1.2:1/1.2)));applyZoom()}
 };
+/* ===== تخزين آمن: IndexedDB للبيانات الكبيرة (لا يمتلئ مثل localStorage) ===== */
+const BIGK=['d','ph','days','log','logo'];
+let IDB=null,IDBREADY=false,IDBQ={},STFAIL=false,MEMK={};
+function idbOpen(){return new Promise((res,rej)=>{try{const r=indexedDB.open('orgsal_store',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+function idbPut(k,v,t){return new Promise((res,rej)=>{try{const tx=IDB.transaction('kv','readwrite');tx.objectStore('kv').put({v,t},P+k);tx.oncomplete=()=>res(true);tx.onerror=()=>rej(tx.error)}catch(e){rej(e)}})}
+function idbGet(k){return new Promise(res=>{try{const tx=IDB.transaction('kv','readonly'),q=tx.objectStore('kv').get(P+k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)}catch(e){res(null)}})}
+function stBanner(on){let b=document.getElementById('stBan');if(!on){if(b)b.remove();return}if(b)return;document.body.insertAdjacentHTML('beforeend','<div id="stBan" style="position:fixed;bottom:0;left:0;right:0;z-index:9998;background:#b91c1c;color:#fff;padding:10px 14px;font-weight:800;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap">⚠️ تعذّر حفظ التعديلات على هذا الجهاز — لا تحدّث الصفحة قبل أخذ نسخة احتياطية <button class="btn sm" style="background:#fff;color:#b91c1c" data-a="stBk">💾 نسخة احتياطية الآن</button></div>')}
+A.stBk=()=>{try{bkNow('طارئة_')}catch(e){}};
+{const _ls0=lsSet;lsSet=function(k,v){if(!BIGK.includes(k))return _ls0(k,v);const t=Date.now();MEMK[k]=v;
+ let ok=false;try{localStorage.setItem(P+k,JSON.stringify(v));localStorage.setItem(P+'st_'+k,String(t));ok=true}catch(e){try{localStorage.removeItem(P+k);localStorage.setItem(P+'st_'+k,String(t))}catch(x){}}
+ if(IDB&&IDBREADY){idbPut(k,v,t).then(()=>{if(STFAIL){STFAIL=false;stBanner(false)}}).catch(()=>{if(!ok){STFAIL=true;stBanner(true)}})}else{IDBQ[k]={v,t};if(!ok&&!window.indexedDB){STFAIL=true;stBanner(true)}}
+ return true}}
+{const _lg0=lsGet;lsGet=function(k,d){if(BIGK.includes(k)&&Object.prototype.hasOwnProperty.call(MEMK,k))return MEMK[k]==null?d:MEMK[k];return _lg0(k,d)}}
+/* عند التشغيل: إن كانت نسخة IndexedDB أحدث (لأن localStorage امتلأ) تُعتمد هي */
+(async()=>{if(!window.indexedDB){IDBREADY=true;return}try{IDB=await idbOpen()}catch(e){IDBREADY=true;return}
+ try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+ const newer={};for(const k of BIGK){const r=await idbGet(k),lt=+(localStorage.getItem(P+'st_'+k)||0),lsHas=localStorage.getItem(P+k)!=null;if(r&&(r.t>lt||!lsHas))newer[k]=r}
+ Object.keys(newer).forEach(k=>{MEMK[k]=newer[k].v});IDBREADY=true;
+ /* تطبيق الأحدث من IndexedDB */
+ if(newer.d){try{D=migrate(newer.d.v);enforceLocks();SNAP=JSON.stringify(D);US=[];RS=[];delete IDBQ.d}catch(e){}}
+ if(newer.ph){PH=newer.ph.v||{};delete IDBQ.ph}if(newer.logo){LOGO=newer.logo.v||'';delete IDBQ.logo}if(newer.days){try{DYC=newer.days.v||{}}catch(e){}delete IDBQ.days}if(newer.log)delete IDBQ.log;
+ /* نسخ كل البيانات الحالية إلى IndexedDB كاحتياط دائم */
+ for(const k of BIGK){if(IDBQ[k]){await idbPut(k,IDBQ[k].v,IDBQ[k].t).catch(()=>{})}else if(!newer[k]){const v=lsGetRaw(k);if(v!==undefined)await idbPut(k,v,+(localStorage.getItem(P+'st_'+k)||0)||Date.now()).catch(()=>{})}}
+ IDBQ={};if(Object.keys(newer).length){try{applyTheme()}catch(e){}if(ME)R();else{try{showLogin()}catch(e){}}}})();
+function lsGetRaw(k){try{const v=localStorage.getItem(P+k);return v==null?undefined:JSON.parse(v)}catch(e){return undefined}}
 /* ===== الأوصاف الوظيفية ===== */
 const JLIB=[
  [/المدير العام|مدير عام/,{purp:'قيادة المؤسسة وإدارة جميع فروعها وأقسامها لتحقيق الأهداف المالية والتشغيلية وضمان جودة الخدمة.',tasks:['وضع الخطط والأهداف السنوية ومتابعة تنفيذها','الإشراف على مدراء الفروع ورؤساء الأقسام وتقييم أدائهم','اعتماد الموازنات وسقوف الرواتب والتعيينات والترقيات','متابعة المبيعات والتكاليف والأرباح واتخاذ القرارات التصحيحية','تمثيل المؤسسة أمام الجهات الرسمية والموردين والشركاء','ضمان الالتزام بالأنظمة والقوانين ومعايير السلامة والجودة'],req:['شهادة جامعية في الإدارة أو ما يعادلها','خبرة لا تقل عن ٨ سنوات منها ٣ سنوات في موقع قيادي','مهارات القيادة والتخطيط واتخاذ القرار','إلمام بالإدارة المالية والموارد البشرية'],kpi:['تحقيق أهداف المبيعات والأرباح','الالتزام بالموازنة وسقوف الرواتب','رضا الزبائن ونسبة الشكاوى','استقرار الكادر ونسبة دوران الموظفين'],hrs:'دوام إداري كامل مع المتابعة عند الحاجة'}],
@@ -2420,7 +2445,7 @@ A.tipShow=()=>{const t=TIPS[CUR];if(!t)return toast('لا يوجد شرح لهذ
 {const _r0=R0;R0=function(){_r0.apply(this,arguments);try{const ph=$('#main .ph');if(ph&&TIPS[CUR]&&!$('#tipQ'))ph.insertAdjacentHTML('beforeend','<button class="btn ghost sm" id="tipQ" data-a="tipShow" title="شرح هذه الصفحة">❓ شرح</button>');if(TIPS[CUR]&&!tipSeen(CUR)&&!$('#tipBar')){const t=TIPS[CUR];$('#main .page').insertAdjacentHTML('afterbegin',`<div id="tipBar" class="info" style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px"><div style="font-size:26px">💡</div><div style="flex:1"><b>${esc(t[0])}</b><div>${esc(t[1])}</div></div><button class="btn sm" data-a="tipOk" data-id="${CUR}">فهمت ✔</button></div>`)}}catch(e){}}}
 /* ===== المزامنة بين الأجهزة عبر Firebase Realtime Database ===== */
 const SYK=['d','ph','days','logo'],SYDEF=LIC&&!LIC.m?'https://chef-bashar-org-default-rtdb.europe-west1.firebasedatabase.app':'';
-let SY=lsGet('sync',null),SYAPPLY=false,SYES=null,SYT={},SYST='off',SYLAST=+(lsGet('syrev',0))||0,SYDIRTY={};
+let SYPULLED=false,SY=lsGet('sync',null),SYAPPLY=false,SYES=null,SYT={},SYST='off',SYLAST=+(lsGet('syrev',0))||0,SYDIRTY={};
 const DEV=(()=>{let d=lsGet('dev','');if(!d){d=Math.random().toString(36).slice(2,10);lsSet('dev',d)}return d})();
 const syOn=()=>!!(SY&&SY.on&&SY.url&&SY.room);
 const syBase=()=>SY.url.replace(/\/+$/,'')+'/orgsal/'+encodeURIComponent(SY.room);
@@ -2428,14 +2453,14 @@ function syStat(s,t){SYST=s;const b=$('#tbSync');if(!b)return;const M={ok:['☁�
 async function syReq(path,method,body){const r=await fetch(syBase()+path+'.json',{method:method||'GET',headers:body!==undefined?{'Content-Type':'application/json'}:{},body:body!==undefined?JSON.stringify(body):undefined,cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status+(r.status===401||r.status===403?' — قواعد قاعدة البيانات تمنع الوصول':''));return r.json()}
 /* الرفع */
 {const _ls=lsSet;lsSet=function(k,v){const r=_ls(k,v);if(!SYAPPLY&&syOn()&&SYK.includes(k)){SYDIRTY[k]=1;clearTimeout(SYT[k]);SYT[k]=setTimeout(()=>syPush(k),k==='d'?1200:2500)}return r}}
-async function syPush(k){if(!syOn()||!SYDIRTY[k])return;syStat('busy');try{const rev=Date.now(),by=ME?(ME.name||ME.u):'';
+async function syPush(k){if(!syOn()||!SYDIRTY[k])return;if(k==='d'&&!SYPULLED){clearTimeout(SYT[k]);SYT[k]=setTimeout(()=>syPush(k),1500);return}syStat('busy');try{const rev=Date.now(),by=ME?(ME.name||ME.u):'';
  if(k==='d'){await syReq('/main','PUT',{rev,dev:DEV,by,lic:LIC.id||'main',at:new Date().toISOString(),d:JSON.stringify(D)});SYLAST=rev;lsSet('syrev',rev)}
  else{const val=k==='ph'?PH:k==='days'?DY():LOGO;await syReq('/'+k,'PUT',JSON.stringify(val));await syReq('/meta/'+k,'PUT',{rev,dev:DEV})}
  delete SYDIRTY[k];syStat('ok','آخر مزامنة '+new Date().toLocaleTimeString('ar-IQ'))}catch(e){syStat('err',e.message)}}
 function syFlush(){Object.keys(SYDIRTY).forEach(k=>syPush(k))}
 setInterval(()=>{if(syOn()&&Object.keys(SYDIRTY).length)syFlush()},30000);window.addEventListener('online',()=>{if(syOn()){syFlush();syListen()}});
 /* الاستقبال */
-function syApplyMain(o,quiet){if(!o||!o.d||o.dev===DEV&&o.rev<=SYLAST)return false;if(o.rev<=SYLAST)return false;if(SYDIRTY.d){return false}
+function syApplyMain(o,quiet){const first=!SYPULLED;SYPULLED=true;if(!o||!o.d||o.dev===DEV&&o.rev<=SYLAST)return false;if(o.rev<=SYLAST)return false;if(SYDIRTY.d&&!first){return false}if(first){delete SYDIRTY.d;clearTimeout(SYT.d)}
  let nd;try{nd=migrate(JSON.parse(o.d))}catch(e){return false}SYAPPLY=true;try{D=nd;enforceLocks();SNAP=JSON.stringify(D);lsSet('d',D);SYLAST=o.rev;lsSet('syrev',o.rev);US=[];RS=[];if(ME){const u=D.users.find(x=>x.u===ME.u);if(u)ME=Object.assign({},ME,u);else{toast('حُذف حسابك من جهاز المدير','bad');setTimeout(()=>{try{A.logout()}catch(e){}},800)}}}finally{SYAPPLY=false}
  if(!quiet&&ME)toast('☁️ وصل تحديث'+(o.by?' من «'+esc(o.by)+'»':''),'ok');if(ME){applyTheme();R()}return true}
 async function syPull(k){try{const v=await syReq('/'+k);if(v==null)return;const o=typeof v==='string'?JSON.parse(v):v;SYAPPLY=true;try{if(k==='ph'){PH=Object.assign({},PH,o);lsSet('ph',PH)}else if(k==='days'){const c=Object.assign({},DY());Object.keys(o).forEach(d=>{if(!c[d]||String(o[d].at)>String(c[d].at))c[d]=o[d]});dySave(c)}else if(k==='logo'){LOGO=o||'';lsSet('logo',LOGO)}}finally{SYAPPLY=false}if(ME)R()}catch(e){}}
@@ -2453,7 +2478,7 @@ A.syEnable=async()=>{if(!isMgr())return;let url=(($('#syU')||{}).value||SYDEF||'
  const room=(SY&&SY.room)||Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join('');syCfgSave({url,room,on:true});syStat('busy');
  try{const o=await syReq('/main');if(o&&o.d&&o.dev!==DEV){openModal('☁️ توجد بيانات في السحابة',`<div class="sub">في قاعدة البيانات نسخة رُفعت ${o.at?'بتاريخ '+esc(o.at.slice(0,16).replace('T',' ')):''}${o.by?' بواسطة '+esc(o.by):''}. ماذا تريد؟</div>`,[{t:'⬇ استخدام بيانات السحابة',a:()=>{closeModal();SYLAST=0;syApplyMain(o);['ph','days','logo'].forEach(syPull);syListen()}},{t:'⬆ رفع بياناتي واستبدالها',cls:'sec',a:()=>{closeModal();syUpAll();syListen()}},{t:'إلغاء',cls:'ghost',a:()=>{closeModal();syCfgSave(Object.assign({},SY,{on:false}));syStat('off');R0()}}],520);return}
   await syUpAll();syListen();toast('☁️ تم تفعيل المزامنة — أرسل «رمز الربط» للمستخدمين','ok');try{confetti()}catch(e){}R0()}catch(e){syStat('err');toast('تعذّر الاتصال بقاعدة البيانات: '+esc(e.message),'bad')}};
-async function syUpAll(){SYK.forEach(k=>SYDIRTY[k]=1);for(const k of SYK)await syPush(k)}
+async function syUpAll(){SYPULLED=true;SYK.forEach(k=>SYDIRTY[k]=1);for(const k of SYK)await syPush(k)}
 A.syOff=()=>{syCfgSave(Object.assign({},SY,{on:false}));try{SYES&&SYES.close()}catch(e){}clearInterval(SYPT);syStat('off');toast('أُوقفت المزامنة على هذا الجهاز');R0()};
 A.syNow=async()=>{if(!syOn())return;await syUpAll();try{const o=await syReq('/main');syApplyMain(o,true)}catch(e){}toast('☁️ تمت المزامنة','ok')};
 A.syCopy=()=>{const c=syCode();try{navigator.clipboard.writeText(c);toast('📋 نُسخ رمز الربط','ok')}catch(e){openModal('رمز الربط',`<textarea style="width:100%;height:90px" readonly>${esc(c)}</textarea>`,[{t:'تم',a:closeModal}])}};
@@ -2467,7 +2492,7 @@ A.syLink=()=>openModal('🔗 ربط هذا الجهاز بجهاز المدير'
  <details style="margin-top:10px"><summary><b>طريقة إنشاء قاعدة البيانات (مرة واحدة — مجاناً)</b></summary><ol style="line-height:1.9"><li>ادخل <b dir="ltr">console.firebase.google.com</b> بحساب Google ← «Add project» ← اكتب اسماً ← أنشئه.</li><li>من القائمة: <b>Build ← Realtime Database ← Create Database</b> ← اختر الموقع ← «Start in <b>locked mode</b>».</li><li>افتح تبويب <b>Rules</b> والصق القواعد التالية ثم <b>Publish</b>:<pre dir="ltr" style="background:#0f172a;color:#e2e8f0;padding:8px;border-radius:8px;font-size:12px">{"rules":{"orgsal":{"$room":{".read":"$room.length >= 12",".write":"$room.length >= 12"}}}}</pre></li><li>انسخ الرابط الظاهر أعلى صفحة Data (ينتهي بـ firebaseio.com أو firebasedatabase.app) والصقه هنا.</li></ol></details>`:'<div class="sub" style="margin-top:8px">المزامنة غير مفعّلة على هذا الجهاز. إذا أرسل لك المدير رمز الربط:</div><button class="btn" data-a="syLink">🔗 ربط بجهاز المدير</button>'}</div>`)}}
 /* زر الربط في شاشة الدخول + مؤشر الحالة في الشريط */
 {const _sl2=showLogin;showLogin=function(){_sl2.apply(this,arguments);try{const r=$('#loginScr .rights');if(r&&!$('#lgSync'))r.insertAdjacentHTML('beforebegin',`<div id="lgSync" style="margin-top:8px;text-align:center">${syOn()?'<span class="sub">☁️ هذا الجهاز مرتبط بجهاز المدير</span>':'<button class="btn ghost wide" data-a="syLink">🔗 ربط بجهاز المدير (للمستخدمين)</button>'}</div>`)}catch(e){}}}
-(function(){try{const u=$('#bUndo');if(u&&!$('#tbSync'))u.insertAdjacentHTML('beforebegin','<button class="tb hide" id="tbSync" data-a="syNow" title="المزامنة">☁️</button>')}catch(e){}if(syOn()){syStat('busy');syListen();setTimeout(()=>syReq('/main').then(o=>syApplyMain(o,true)).catch(()=>syStat('err')),300)}})();
+(function(){try{const u=$('#bUndo');if(u&&!$('#tbSync'))u.insertAdjacentHTML('beforebegin','<button class="tb hide" id="tbSync" data-a="syNow" title="المزامنة">☁️</button>')}catch(e){}if(syOn()){syStat('busy');syListen();setTimeout(()=>syReq('/main').then(o=>{if(o)syApplyMain(o,true);else SYPULLED=true}).catch(()=>{SYPULLED=true;syStat('err')}),300)}})();
 
 /* تذكير المدير بتفعيل المزامنة (قاعدة البيانات جاهزة) */
 {const _rds2=rDash;rDash=function(el){_rds2(el);try{if(isMgr()&&!syOn()&&SYDEF)el.insertAdjacentHTML('afterbegin',`<div class="card" style="border-right:4px solid var(--pri)"><div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div><b>☁️ قاعدة بيانات المزامنة جاهزة</b><div class="sub">فعّلها بضغطة لترتبط أجهزة المشرفين بجهازك وتصل التعديلات للجميع.</div></div><button class="btn" data-a="syEnable">☁️ تفعيل المزامنة الآن</button></div></div>`)}catch(e){}}}

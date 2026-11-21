@@ -113,6 +113,15 @@ h3{margin:2px 0 8px;font-size:15.5px}
  .ib{min-width:34px;padding:0 4px}
 }
 #propsT{display:none}
+body.view #tools,body.view #props,body.view #bUndo,body.view #bRedo,body.view #propsT,body.view #hint{display:none!important}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.pcard{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:5px}
+.pcard canvas{width:100%;height:190px;object-fit:contain;background:#fff;border-radius:10px;border:1px solid var(--bd)}
+.boq{width:100%;border-collapse:collapse;font-size:13px}.boq td,.boq th{border:1px solid var(--bd);padding:5px 6px;text-align:center}.boq input{width:100px;min-height:28px;padding:2px 6px}
+.prPage .boq td,.prPage .boq th{border-color:#999}
+.elv img{width:100%;background:#fff;border:1px solid var(--bd);border-radius:10px}
+#prv .ph{flex-wrap:wrap}
+#prv select{width:auto;min-height:30px;padding:2px 6px}
 @media print{
  body>*{display:none!important}
  #prv{display:block!important;position:static;background:#fff;overflow:visible}
@@ -177,7 +186,7 @@ h3{margin:2px 0 8px;font-size:15.5px}
    <div id="v3bar" class="hide">
     <span class="chip on" id="m3o">🔄 دوران</span><span class="chip" id="m3w">🚶 تجوّل</span>
     <span class="chip" id="m3low">▁ جدران منخفضة</span><span class="chip" id="m3all">🏢 كل الطوابق</span>
-    <span class="chip" id="m3r">⟲ ضبط العرض</span><span class="chip" id="m3s">📷 صورة</span>
+    <span class="chip" id="m3c">💡 سقف</span><span class="chip" id="m3r">⟲ ضبط العرض</span><span class="chip" id="m3s">📷 صورة</span>
    </div>
    <div id="joy" class="hide"><span></span><button data-k="f">▲</button><span></span><button data-k="l">◀</button><button data-k="b">▼</button><button data-k="r">▶</button></div>
   </div>
@@ -189,7 +198,7 @@ h3{margin:2px 0 8px;font-size:15.5px}
 
 <div id="pnl" class="pnl"><div class="ph"><b id="pnT"></b><button class="ib" id="pnU" title="تراجع">↶</button><button class="ib" id="pnM" title="القائمة">☰</button><button class="ib" id="pnX" title="إغلاق">✕</button></div><div class="pb" id="pnB"></div></div>
 
-<div id="prv" class="pnl"><div class="ph"><b>🖨 معاينة الطباعة</b><label class="ck noprint" style="margin:0 6px"><input type="checkbox" id="prCred" checked> حقوق المصمم</label><button class="btn sm" id="prP">🖨 طباعة / PDF</button><button class="btn sm sec" id="prD">⬇ PNG</button><button class="ib" id="prX" title="إغلاق">✕</button></div><div id="prB"></div></div>
+<div id="prv" class="pnl"><div class="ph"><b>🖨 معاينة الطباعة</b><select id="prPaper" class="inp"><option>A4</option><option>A3</option></select><select id="prOr" class="inp"><option value="l">أفقي</option><option value="p">عمودي</option></select><select id="prSc" class="inp"><option value="fit">ملاءمة الورقة</option><option value="50">١:٥٠</option><option value="100">١:١٠٠</option><option value="200">١:٢٠٠</option></select><label class="ck" style="margin:0 4px"><input type="checkbox" id="prReq" checked> المتطلبات</label><label class="ck" style="margin:0 4px"><input type="checkbox" id="prBoq"> الكميات</label><label class="ck" style="margin:0 4px"><input type="checkbox" id="prElev"> الواجهات</label><label class="ck" style="margin:0 4px"><input type="checkbox" id="prCred" checked> الحقوق</label><button class="btn sm" id="prP">🖨 طباعة / PDF</button><button class="btn sm sec" id="prD">⬇ PNG</button><button class="ib" id="prX" title="إغلاق">✕</button></div><div id="prB"></div></div>
 
 <input type="file" id="fileIn" accept=".json,application/json" class="hide">
 <script>
@@ -325,7 +334,7 @@ let us=[],rs=[],lastSnap='';
 const snap=()=>JSON.stringify(D);
 let persistT=0;
 function persist(){clearTimeout(persistT);persistT=setTimeout(persistNow,250)}
-function persistNow(){if(!cur)return;cur.d=D;cur.u=Date.now();sv('projects',projects);if(me)sv('last_'+me.u,cur.id)}
+function persistNow(){if(!cur||VIEW)return;cur.d=D;cur.u=Date.now();sv('projects',projects);if(me)sv('last_'+me.u,cur.id)}
 function commit(){if(!cur)return;const s=snap();if(s===lastSnap)return;const a=lastSnap,b=s;pushU(()=>restore(a),()=>restore(b));lastSnap=s;persist();dirty3=true}
 function pushU(u,r){us.push({u,r});if(us.length>80)us.shift();rs=[];updUR()}
 function restore(s){D=JSON.parse(s);cur.d=D;lastSnap=s;sel=null;draft=null;persist();dirty3=true;refreshAll()}
@@ -370,7 +379,7 @@ function patCanvas(m,col){const key=m+col;if(patC.has(key))return patC.get(key);
  else if(p==='stone'){x.strokeStyle=dk;x.lineWidth=1.5;x.strokeRect(.75,.75,S-1.5,31);x.strokeRect(-31,32.75,64,30.5);x.strokeRect(33,32.75,64,30.5)}
  patC.set(key,c);return c}
 function roomFill(ctx,r,v){const m=FLOORS[r.m]||FLOORS.tile,col=r.c||m.c;const pat=ctx.createPattern(patCanvas(r.m,col),'repeat');const k=v.s*m.z/64;try{pat.setTransform(new DOMMatrix([k,0,0,k,v.ox,v.oy]))}catch(e){}return pat}
-function drawItem(ctx,it,v,ghost){ctx.save();ctx.translate(it.x*v.s+v.ox,it.y*v.s+v.oy);ctx.rotate(it.r*Math.PI/180);ctx.scale(v.s,v.s);ctx.translate(-it.w/2,-it.d/2);if(ghost)ctx.globalAlpha=.55;const ps=itemParts(it).slice().sort((a,b)=>a[5]-b[5]);ctx.lineWidth=1/v.s;for(const p of ps){const col=partCol(it,p[6]);const w=p[3]-p[0],d=p[4]-p[1];ctx.beginPath();if(p[7]==='c')ctx.ellipse(p[0]+w/2,p[1]+d/2,Math.abs(w/2),Math.abs(d/2),0,0,Math.PI*2);else ctx.rect(p[0],p[1],w,d);if(col==='g'){ctx.fillStyle='rgba(140,190,225,.35)';ctx.fill();ctx.strokeStyle='#5b8db0'}else{ctx.fillStyle=shade(col,Math.min(.25,p[5]/900));ctx.fill();ctx.strokeStyle='rgba(0,0,0,.42)'}ctx.stroke()}ctx.restore()}
+function drawItem(ctx,it,v,ghost){ctx.save();ctx.translate(it.x*v.s+v.ox,it.y*v.s+v.oy);ctx.rotate(it.r*Math.PI/180);ctx.scale(v.s,v.s);ctx.translate(-it.w/2,-it.d/2);if(ghost)ctx.globalAlpha=.55;const df0=DEF[it.t]||{};if(df0.sym){const mz=Math.max(1,16/(Math.min(it.w,it.d)*v.s));ctx.translate(it.w/2,it.d/2);ctx.scale(mz,mz);ctx.translate(-it.w/2,-it.d/2);df0.sym(ctx,it.w,it.d,v.s*mz);ctx.restore();return}const ps=itemParts(it).slice().sort((a,b)=>a[5]-b[5]);ctx.lineWidth=1/v.s;for(const p of ps){const col=partCol(it,p[6]);const w=p[3]-p[0],d=p[4]-p[1];ctx.beginPath();if(p[7]==='c')ctx.ellipse(p[0]+w/2,p[1]+d/2,Math.abs(w/2),Math.abs(d/2),0,0,Math.PI*2);else ctx.rect(p[0],p[1],w,d);if(col==='g'){ctx.fillStyle='rgba(140,190,225,.35)';ctx.fill();ctx.strokeStyle='#5b8db0'}else{ctx.fillStyle=shade(col,Math.min(.25,p[5]/900));ctx.fill();ctx.strokeStyle='rgba(0,0,0,.42)'}ctx.stroke()}ctx.restore()}
 function itemCorners(it){const a=it.r*Math.PI/180,c=Math.cos(a),s=Math.sin(a);return[[-1,-1],[1,-1],[1,1],[-1,1]].map(([i,j])=>{const x=i*it.w/2,y=j*it.d/2;return[it.x+x*c-y*s,it.y+x*s+y*c]})}
 function toLocal(it,p){const a=-it.r*Math.PI/180,dx=p.x-it.x,dy=p.y-it.y;return{x:dx*Math.cos(a)-dy*Math.sin(a),y:dx*Math.sin(a)+dy*Math.cos(a)}}
 
@@ -378,10 +387,11 @@ function renderPlan(ctx,W,Hh,v,opt){const f=opt.floor,pr=!!opt.print,s=v.s;const
  const C=pr?{cv:'#ffffff',wall:'#1f1f1f',tx:'#111',mu:'#555',pr:'#1e6fd9',g1:'#eee',g2:'#ddd'}:{cv:cssv('--cv'),wall:cssv('--wall'),tx:cssv('--tx'),mu:cssv('--mu'),pr:cssv('--pr'),g1:cssv('--g1'),g2:cssv('--g2')};
  ctx.fillStyle=C.cv;ctx.fillRect(0,0,W,Hh);ctx.lineCap='butt';ctx.lineJoin='miter';
  if(!pr){let st=[10,50,100,500,1000].find(g=>g*s>=9)||1000;const big=st*(st===50?2:st===10?10:5);for(const [g,col] of [[st,C.g1],[big,C.g2]]){ctx.strokeStyle=col;ctx.lineWidth=1;ctx.beginPath();const x0=Math.floor(-v.ox/s/g)*g,y0=Math.floor(-v.oy/s/g)*g;for(let x=x0;X(x)<W;x+=g){const sx=Math.round(X(x))+.5;ctx.moveTo(sx,0);ctx.lineTo(sx,Hh)}for(let y=y0;Y(y)<Hh;y+=g){const sy=Math.round(Y(y))+.5;ctx.moveTo(0,sy);ctx.lineTo(W,sy)}ctx.stroke()}}
+ drawBg(ctx,f,v,pr);
  // الأرضيات
  for(const r of f.rooms){if(r.pts.length<3)continue;ctx.beginPath();r.pts.forEach((p,i)=>i?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.closePath();ctx.fillStyle=roomFill(ctx,r,v);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=1;ctx.stroke()}
  // الأثاث
- for(const it of f.items)drawItem(ctx,it,v);
+ for(const it of f.items)if(itemVis(it)&&!(DEF[it.t]||{}).sym)drawItem(ctx,it,v);
  // الجدران
  ctx.fillStyle=C.wall;
  const segsCache=new Map();
@@ -394,15 +404,16 @@ function renderPlan(ctx,W,Hh,v,opt){const f=opt.floor,pr=!!opt.print,s=v.s;const
    else{const leaves=o.t==='door2'?[[a,(b-a)/2,1],[b,(b-a)/2,-1]]:[[o.fh?b:a,b-a,o.fh?-1:1]];const fs=o.fs||1;ctx.strokeStyle=C.wall;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(...P(a,t));ctx.lineTo(...P(a,-t));ctx.moveTo(...P(b,t));ctx.lineTo(...P(b,-t));ctx.stroke();
     for(const [hd,len,dir] of leaves){const hn=fs*t;const hx=w.x1+g.ux*hd+g.nx*hn,hy=w.y1+g.uy*hd+g.ny*hn;const jx=g.ux*dir,jy=g.uy*dir,lx=g.nx*fs,ly=g.ny*fs;ctx.lineWidth=2;ctx.strokeStyle=C.wall;ctx.beginPath();ctx.moveTo(X(hx),Y(hy));ctx.lineTo(X(hx+lx*len),Y(hy+ly*len));ctx.stroke();const a1=Math.atan2(jy,jx),a2=Math.atan2(ly,lx),cr=jx*ly-jy*lx;ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.beginPath();ctx.arc(X(hx),Y(hy),len*s,a1,a2,cr<0);ctx.stroke();ctx.setLineDash([])}}
   }}
+ for(const it of f.items)if(itemVis(it)&&(DEF[it.t]||{}).sym)drawItem(ctx,it,v);
  // أطوال الجدران
- const fz=(px)=>`${pr?Math.round(px*1.45):px}px Cairo,Tahoma,Arial`;
- if(cfg.showLen||pr){ctx.font=fz(pr?11:10.5);ctx.fillStyle=C.mu;ctx.textAlign='center';ctx.textBaseline='middle';for(const w of f.walls){const g=segsCache.get(w.id);if(g.L*s<45)continue;const off=w.t/2+14/s;const cx=(w.x1+w.x2)/2+g.nx*off,cy=(w.y1+w.y2)/2+g.ny*off;ctx.save();ctx.translate(X(cx),Y(cy));let an=Math.atan2(g.uy,g.ux);if(an>Math.PI/2||an<=-Math.PI/2)an+=Math.PI;ctx.rotate(an);ctx.fillText(fmtL(g.L,pr),0,0);ctx.restore()}}
+ const fz=(px)=>`${Math.round(px*(opt.fsc||(pr?1.45:1)))}px Cairo,Tahoma,Arial`;
+ if((cfg.showLen||pr)&&!opt.thumb){ctx.font=fz(pr?11:10.5);ctx.fillStyle=C.mu;ctx.textAlign='center';ctx.textBaseline='middle';for(const w of f.walls){const g=segsCache.get(w.id);if(g.L*s<45)continue;const off=w.t/2+14/s;const cx=(w.x1+w.x2)/2+g.nx*off,cy=(w.y1+w.y2)/2+g.ny*off;ctx.save();ctx.translate(X(cx),Y(cy));let an=Math.atan2(g.uy,g.ux);if(an>Math.PI/2||an<=-Math.PI/2)an+=Math.PI;ctx.rotate(an);ctx.fillText(fmtL(g.L,pr),0,0);ctx.restore()}}
  // القياسات
- for(const d of f.dims){const L=Math.hypot(d.x2-d.x1,d.y2-d.y1);if(L<1)continue;const ux=(d.x2-d.x1)/L,uy=(d.y2-d.y1)/L,nx=-uy,ny=ux,tk=6/s;ctx.strokeStyle=pr?'#333':C.pr;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(d.x1),Y(d.y1));ctx.lineTo(X(d.x2),Y(d.y2));for(const [px,py] of [[d.x1,d.y1],[d.x2,d.y2]]){ctx.moveTo(X(px+nx*tk-ux*tk),Y(py+ny*tk-uy*tk));ctx.lineTo(X(px-nx*tk+ux*tk),Y(py-ny*tk+uy*tk))}ctx.stroke();ctx.save();ctx.translate(X((d.x1+d.x2)/2),Y((d.y1+d.y2)/2));let an=Math.atan2(uy,ux);if(an>Math.PI/2||an<=-Math.PI/2)an+=Math.PI;ctx.rotate(an);ctx.font='bold '+fz(12);ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=pr?'#000':C.pr;ctx.fillText(fmtL(L,pr),0,-3);ctx.restore()}
+ if(!opt.thumb)for(const d of f.dims){const L=Math.hypot(d.x2-d.x1,d.y2-d.y1);if(L<1)continue;const ux=(d.x2-d.x1)/L,uy=(d.y2-d.y1)/L,nx=-uy,ny=ux,tk=6/s;ctx.strokeStyle=pr?'#333':C.pr;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(d.x1),Y(d.y1));ctx.lineTo(X(d.x2),Y(d.y2));for(const [px,py] of [[d.x1,d.y1],[d.x2,d.y2]]){ctx.moveTo(X(px+nx*tk-ux*tk),Y(py+ny*tk-uy*tk));ctx.lineTo(X(px-nx*tk+ux*tk),Y(py-ny*tk+uy*tk))}ctx.stroke();ctx.save();ctx.translate(X((d.x1+d.x2)/2),Y((d.y1+d.y2)/2));let an=Math.atan2(uy,ux);if(an>Math.PI/2||an<=-Math.PI/2)an+=Math.PI;ctx.rotate(an);ctx.font='bold '+fz(12);ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=pr?'#000':C.pr;ctx.fillText(fmtL(L,pr),0,-3);ctx.restore()}
  // أسماء الغرف
  ctx.textAlign='center';ctx.textBaseline='middle';
- for(const r of f.rooms){if(r.pts.length<3||r.plot)continue;const A=Math.abs(polyArea(r.pts));if(Math.sqrt(A)*s<50)continue;const [cx,cy]=centroid(r.pts);ctx.font='bold '+fz(13);const t1=r.n||'',t2=fmtA(A,pr);ctx.lineWidth=3;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.fillStyle='#222';if(t1){ctx.strokeText(t1,X(cx),Y(cy)-8);ctx.fillText(t1,X(cx),Y(cy)-8)}ctx.font=fz(11.5);ctx.strokeText(t2,X(cx),Y(cy)+9);ctx.fillText(t2,X(cx),Y(cy)+9)}
- for(const l of f.labels){ctx.font='bold '+fz(Math.max(9,(l.sz||30)*s));ctx.fillStyle=l.c||C.tx;ctx.fillText(pr?AR(l.tx):l.tx,X(l.x),Y(l.y))}
+ if(!opt.thumb)for(const r of f.rooms){if(r.pts.length<3||r.plot)continue;const A=Math.abs(polyArea(r.pts));if(Math.sqrt(A)*s<50)continue;const [cx,cy]=centroid(r.pts);ctx.font='bold '+fz(13);const t1=r.n||'',t2=fmtA(A,pr);ctx.lineWidth=3;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.fillStyle='#222';if(t1){ctx.strokeText(t1,X(cx),Y(cy)-8);ctx.fillText(t1,X(cx),Y(cy)-8)}ctx.font=fz(11.5);ctx.strokeText(t2,X(cx),Y(cy)+9);ctx.fillText(t2,X(cx),Y(cy)+9)}
+ if(!opt.thumb)for(const l of f.labels){ctx.font='bold '+fz(Math.max(9,(l.sz||30)*s));ctx.fillStyle=l.c||C.tx;ctx.fillText(pr?AR(l.tx):l.tx,X(l.x),Y(l.y))}
  if(pr){// مقياس الرسم
   const m=100*s;ctx.fillStyle='#000';ctx.fillRect(20,Hh-24,m,4);ctx.font=fz(11);ctx.textAlign='left';ctx.fillText(AR('١ م'),24+m,Hh-22);return}
  if(!opt.ui)return;
@@ -411,6 +422,7 @@ function renderPlan(ctx,W,Hh,v,opt){const f=opt.floor,pr=!!opt.print,s=v.s;const
  if(hov&&!(sel&&hov.id===sel.id)){const o=F()[ARR[hov.k]].find(z=>z.id===hov.id);if(o)outline(hov.k,o,C.pr+'99',2)}
  const so=getSel();if(so){ctx.setLineDash([6,4]);outline(sel.k,so,C.pr,2);ctx.setLineDash([]);for(const h of handles()){ctx.beginPath();ctx.arc(X(h.x),Y(h.y),h.t==='rot'?7:6,0,Math.PI*2);ctx.fillStyle=h.t==='rot'?C.pr:'#fff';ctx.fill();ctx.strokeStyle=C.pr;ctx.lineWidth=2;ctx.stroke();if(h.t==='rot'){ctx.fillStyle='#fff';ctx.font='bold 10px Arial';ctx.fillText('⟳',X(h.x),Y(h.y)+1)}}
   if(sel.k==='wall'||sel.k==='item'){ctx.font='bold '+fz(12);const lbl=sel.k==='wall'?fmtL(wl(so)):`${r1(so.w)}×${r1(so.d)} سم`;const cx=sel.k==='wall'?(so.x1+so.x2)/2:so.x,cy=sel.k==='wall'?(so.y1+so.y2)/2:so.y;const tw=ctx.measureText(lbl).width+12;ctx.fillStyle=C.pr;ctx.fillRect(X(cx)-tw/2,Y(cy)-11,tw,22);ctx.fillStyle='#fff';ctx.fillText(lbl,X(cx),Y(cy)+1)}}
+ drawMulti(ctx,outline,C,X,Y);
  // المسودات
  const lenTag=(a,b)=>{const L=Math.hypot(b.x-a.x,b.y-a.y);if(L<1)return;ctx.font='bold '+fz(12);const t=fmtL(L),tw=ctx.measureText(t).width+12;const mx=X((a.x+b.x)/2),my=Y((a.y+b.y)/2)-16;ctx.fillStyle=C.pr;ctx.fillRect(mx-tw/2,my-11,tw,22);ctx.fillStyle='#fff';ctx.fillText(t,mx,my+1)};
  if(draft&&(draft.k==='wall'||draft.k==='poly')){const pts=draft.pts.concat(draft.cur?[draft.cur]:[]);ctx.strokeStyle=draft.k==='wall'?C.wall+'aa':C.pr;ctx.lineWidth=draft.k==='wall'?Math.max(2,D.wt*s):2;ctx.lineCap='square';ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(X(p.x),Y(p.y)):ctx.moveTo(X(p.x),Y(p.y)));if(draft.k==='poly'&&pts.length>2){ctx.fillStyle=C.pr+'22';ctx.fill()}ctx.stroke();ctx.lineCap='butt';draft.pts.forEach((p,i)=>{ctx.beginPath();ctx.arc(X(p.x),Y(p.y),i?4:6,0,7);ctx.fillStyle=i?C.pr:'#fff';ctx.fill();ctx.strokeStyle=C.pr;ctx.lineWidth=2;ctx.stroke()});if(draft.cur&&draft.pts.length)lenTag(draft.pts[draft.pts.length-1],draft.cur)}
@@ -433,7 +445,7 @@ function hit(p){const f=F(),tol=7/view.s;
  x2.save();for(let i=f.labels.length-1;i>=0;i--){const l=f.labels[i];x2.font='bold '+Math.max(9,(l.sz||30)*view.s)+'px Cairo,Tahoma';const tw=x2.measureText(l.tx).width/view.s/2+tol,th=Math.max(9/view.s,(l.sz||30))/2+tol;if(Math.abs(p.x-l.x)<tw&&Math.abs(p.y-l.y)<th){x2.restore();return{k:'label',id:l.id}}}x2.restore();
  for(const d of f.dims)if(segD(p,d.x1,d.y1,d.x2,d.y2)<tol)return{k:'dim',id:d.id};
  for(const w of f.walls)if(closest(p,w).d<w.t/2+tol)return{k:'wall',id:w.id};
- for(let i=f.items.length-1;i>=0;i--){const it=f.items[i],q=toLocal(it,p);if(Math.abs(q.x)<=it.w/2+tol&&Math.abs(q.y)<=it.d/2+tol)return{k:'item',id:it.id}}
+ for(let i=f.items.length-1;i>=0;i--){const it=f.items[i];if(!itemVis(it))continue;const q=toLocal(it,p),sy=(DEF[it.t]||{}).sym?8/view.s:0;if(Math.abs(q.x)<=Math.max(it.w/2,sy)+tol&&Math.abs(q.y)<=Math.max(it.d/2,sy)+tol)return{k:'item',id:it.id}}
  for(let i=f.rooms.length-1;i>=0;i--){const r=f.rooms[i];if(inPoly(p.x,p.y,r.pts))return{k:'room',id:r.id}}
  return null}
 function snapPt(p,from,ex,free){const f=F(),th=12/view.s;let best=null,bd=th;const T=(x,y)=>{const d=Math.hypot(x-p.x,y-p.y);if(d<bd){bd=d;best={x,y,s:1}}};
@@ -454,11 +466,11 @@ function wallPoint(q){if(!draft){draft={k:'wall',pts:[q],cur:q};render();return}
 function polyPoint(q){if(!draft){draft={k:'poly',pts:[q],cur:q};render();return}const pts=draft.pts,last=pts[pts.length-1];if(Math.hypot(q.x-last.x,q.y-last.y)<1||(pts.length>2&&Math.hypot(q.x-pts[0].x,q.y-pts[0].y)<1)){finishDraft();return}pts.push(q);render()}
 function finishDraft(){if(draft&&draft.k==='poly'&&draft.pts.length>2){const r=addRoom(draft.pts,'غرفة');sel={k:'room',id:r.id};draft=null;commit();setTool('select');return}draft=null;commit();render();renderProps()}
 function lenEnter(v){v=parseFloat(v);if(!(v>0)||!draft||!draft.pts.length)return;const last=draft.pts[draft.pts.length-1],c=draft.cur||{x:last.x+1,y:last.y};let dx=c.x-last.x,dy=c.y-last.y,L=Math.hypot(dx,dy);if(L<.01){dx=1;dy=0;L=1}const q={x:r1(last.x+dx/L*v),y:r1(last.y+dy/L*v)};draft.k==='wall'?wallPoint(q):polyPoint(q);const i=$('#lenIn');if(i){i.value='';i.focus()}}
-function deleteSel(){const o=getSel();if(!o)return;const f=F();const k=sel.k;f[ARR[k]]=f[ARR[k]].filter(z=>z!==o);if(k==='wall')f.ops=f.ops.filter(z=>z.w!==o.id);sel=null;commit();render();renderProps();toast('حُذف. اضغط ↶ تراجع لاسترجاعه')}
+function deleteSel(){if(msel.length>1){groupDelete();return}const o=getSel();if(!o)return;const f=F();const k=sel.k;f[ARR[k]]=f[ARR[k]].filter(z=>z!==o);if(k==='wall')f.ops=f.ops.filter(z=>z.w!==o.id);sel=null;commit();render();renderProps();toast('حُذف. اضغط ↶ تراجع لاسترجاعه')}
 function duplicateSel(){const o=getSel();if(!o||!['item','room','label','wall'].includes(sel.k))return;const n=JSON.parse(JSON.stringify(o));n.id=uid();const d=30;if(n.pts)n.pts=n.pts.map(p=>[p[0]+d,p[1]+d]);if('x' in n){n.x+=d;n.y+=d}if('x1' in n){n.x1+=d;n.y1+=d;n.x2+=d;n.y2+=d}F()[ARR[sel.k]].push(n);sel={k:sel.k,id:n.id};commit();render();renderProps()}
 let placeRot=0;
-const TOOLS=[['select','↖','تحديد'],['wall','▬','جدار'],['rect','⬜','غرفة'],['poly','⬠','أرضية'],['door','🚪','باب'],['door2','◫','باب مزدوج'],['slide','⇆','منزلق'],['window','🪟','نافذة'],['furn','🛋','أثاث'],['text','T','نص'],['dim','↔','قياس'],['pan','✋','تحريك'],['erase','🗑','مسح']];
-const HINTS={wall:'انقر لبدء الجدار ثم انقر عند كل زاوية · انقر على النقطة الأخيرة للإنهاء · العودة لنقطة البداية تغلق الغرفة · Shift لإيقاف الالتقاط',rect:'اسحب لرسم غرفة مستطيلة بجدرانها وأرضيتها',poly:'انقر نقاط حدود الأرضية، ثم انقر على النقطة الأولى للإغلاق',door:'انقر على جدار لوضع باب',door2:'انقر على جدار لوضع باب مزدوج',slide:'انقر على جدار لوضع باب منزلق',window:'انقر على جدار لوضع نافذة',text:'انقر في المكان لإضافة نص',dim:'اسحب بين نقطتين لإضافة خط قياس',pan:'اسحب لتحريك المخطط · العجلة أو إصبعين للتكبير',erase:'انقر على أي عنصر لحذفه',place:''};
+const TOOLS=[['select','↖','تحديد'],['msel','⬚','تحديد متعدد'],['wall','▬','جدار'],['rect','⬜','غرفة'],['poly','⬠','أرضية'],['auto','🪄','كشف غرفة'],['door','🚪','باب'],['door2','◫','باب مزدوج'],['slide','⇆','منزلق'],['window','🪟','نافذة'],['furn','🛋','أثاث'],['text','T','نص'],['dim','↔','قياس'],['pan','✋','تحريك'],['erase','🗑','مسح']];
+const HINTS={msel:'انقر على العناصر أو اسحب مربعاً حولها لتحديدها · اسحب المحدد لتحريك المجموعة',auto:'انقر داخل غرفة محاطة بالجدران لإنشاء أرضيتها ومساحتها تلقائياً',cal:'انقر نقطتين على الصورة بينهما طول معروف',bgm:'اسحب لتحريك الصورة الخلفية',wall:'انقر لبدء الجدار ثم انقر عند كل زاوية · انقر على النقطة الأخيرة للإنهاء · العودة لنقطة البداية تغلق الغرفة · Shift لإيقاف الالتقاط',rect:'اسحب لرسم غرفة مستطيلة بجدرانها وأرضيتها',poly:'انقر نقاط حدود الأرضية، ثم انقر على النقطة الأولى للإغلاق',door:'انقر على جدار لوضع باب',door2:'انقر على جدار لوضع باب مزدوج',slide:'انقر على جدار لوضع باب منزلق',window:'انقر على جدار لوضع نافذة',text:'انقر في المكان لإضافة نص',dim:'اسحب بين نقطتين لإضافة خط قياس',pan:'اسحب لتحريك المخطط · العجلة أو إصبعين للتكبير',erase:'انقر على أي عنصر لحذفه',place:''};
 function buildTools(){$('#tools').innerHTML=TOOLS.map(([k,i,n])=>`<button class="tb" data-t="${k}" title="${n}"><i>${i}</i>${n}</button>`).join('')}
 function setTool(t){if(t==='furn'){openLib();return}if(draft&&t!==tool){draft=null;commit()}tool=t;if(t!=='place')placing=null;$$('#tools .tb').forEach(b=>b.classList.toggle('on',b.dataset.t===t||(t==='place'&&b.dataset.t==='furn')));const h=$('#hint');if(t==='select'){h.classList.add('hide')}else{h.classList.remove('hide');let x=`<span>${t==='place'?'انقر لوضع: <b>'+esc(DEF[placing].n)+'</b> · R للتدوير':HINTS[t]}</span>`;if(t==='wall'||t==='poly')x+=`<input id="lenIn" class="inp" type="number" placeholder="الطول (سم) ↵"><button class="btn sm" data-h="fin">✓ إنهاء</button>`;if(t==='place')x+=`<button class="btn sm sec" data-h="rot">⟳ تدوير</button>`;x+=`<button class="btn sm sec" data-h="x">✕</button>`;h.innerHTML=x}c2.style.cursor=t==='pan'?'grab':t==='select'?'default':'crosshair';render();renderProps()}
 $('#hint').addEventListener('click',e=>{const b=e.target.closest('[data-h]');if(!b)return;const a=b.dataset.h;if(a==='fin')finishDraft();else if(a==='x'){draft=null;setTool('select')}else if(a==='rot'){placeRot=(placeRot+90)%360;render()}});
@@ -471,6 +483,7 @@ c2.addEventListener('pointerdown',e=>{if(!D)return;c2.setPointerCapture(e.pointe
  if(ptrs.size===2){const [a,b]=[...ptrs.values()];drag={t:'pinch',d0:Math.hypot(a.x-b.x,a.y-b.y),s0:view.s,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,ox:view.ox,oy:view.oy};return}
  if(e.button===2){if(draft)finishDraft();else if(tool!=='select')setTool('select');return}
  if(e.button===1||tool==='pan'||spaceDown){drag={t:'pan',sx:p.sx,sy:p.sy,ox:view.ox,oy:view.oy};c2.style.cursor='grabbing';return}
+ if(pdExtra(e,p))return;
  const free=e.shiftKey;
  if(tool==='select'){for(const h of handles()){if(Math.hypot(h.x*view.s+view.ox-p.sx,h.y*view.s+view.oy-p.sy)<12){const o=getSel();drag={t:h.t,h,o};if(h.t==='we'){const x=h.e===1?o.x1:o.x2,y=h.e===1?o.y1:o.y2;drag.J=joints(x,y,o)}return}}
   const hh=hit(p);if(hh){sel=hh;const o=getSel();drag={t:'move',p0:p,orig:JSON.parse(JSON.stringify(o)),o,moved:false};if(hh.k==='wall'){drag.J1=joints(o.x1,o.y1,o);drag.J2=joints(o.x2,o.y2,o)}}else{sel=null;drag={t:'pan',sx:p.sx,sy:p.sy,ox:view.ox,oy:view.oy,tap:1}}renderProps();render();return}
@@ -486,7 +499,8 @@ c2.addEventListener('pointermove',e=>{if(!D)return;const p=evW(e);if(ptrs.has(e.
  if(drag&&drag.t==='pinch'){if(ptrs.size<2)return;const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y),cx=(a.x+b.x)/2,cy=(a.y+b.y)/2;const ns=clamp(drag.s0*d/drag.d0,.02,10),k=ns/drag.s0;view.s=ns;view.ox=cx-(drag.cx-drag.ox)*k;view.oy=cy-(drag.cy-drag.oy)*k;render();return}
  mouse={x:p.x,y:p.y};
  if(['wall','poly','rect','dim'].includes(tool)){const last=draft&&draft.pts?draft.pts[draft.pts.length-1]:draft&&draft.a;mouse.sp=snapPt(p,last,null,free);if(draft&&draft.pts)draft.cur=mouse.sp;if(draft&&draft.a&&drag)draft.b=mouse.sp}
- if(!drag){if(tool==='select'||tool==='erase'){const h=hit(p);if(JSON.stringify(h)!==JSON.stringify(hov)){hov=h}}render();return}
+ if(!drag){if(tool==='select'||tool==='erase'||tool==='msel'){const h=hit(p);if(JSON.stringify(h)!==JSON.stringify(hov)){hov=h}}render();return}
+ if(pmExtra(p,free))return;
  const o=drag.o;
  if(drag.t==='pan'){view.ox=drag.ox+p.sx-drag.sx;view.oy=drag.oy+p.sy-drag.sy;if(Math.hypot(p.sx-drag.sx,p.sy-drag.sy)>4)drag.tap=0;render();return}
  if(drag.t==='move'){const dx=p.x-drag.p0.x,dy=p.y-drag.p0.y;if(!drag.moved&&Math.hypot(dx,dy)*view.s<3)return;drag.moved=true;const g=drag.orig;
@@ -504,6 +518,7 @@ c2.addEventListener('pointermove',e=>{if(!D)return;const p=evW(e);if(ptrs.has(e.
  if(drag.t==='draft'&&draft){render()}
 });
 function endPtr(e){ptrs.delete(e.pointerId);if(!drag)return;const d=drag;if(d.t==='pinch'){if(ptrs.size===0)drag=null;return}drag=null;
+ if(puExtra(d))return;
  if(d.t==='pan'){c2.style.cursor=tool==='pan'?'grab':tool==='select'?'default':'crosshair';return}
  if(d.t==='draft'&&draft){const a=draft.a,b=draft.b;if(draft.k==='rect'){const w=Math.abs(b.x-a.x),h=Math.abs(b.y-a.y);if(w>=40&&h>=40){const x0=Math.min(a.x,b.x),y0=Math.min(a.y,b.y),x1=x0+w,y1=y0+h;const P=[{x:x0,y:y0},{x:x1,y:y0},{x:x1,y:y1},{x:x0,y:y1}];for(let i=0;i<4;i++)addWall(P[i],P[(i+1)%4]);const r=addRoom(P,'غرفة');sel={k:'room',id:r.id};draft=null;commit();setTool('select');return}}else{if(Math.hypot(b.x-a.x,b.y-a.y)>=5){const dd={id:uid(),x1:a.x,y1:a.y,x2:b.x,y2:b.y};F().dims.push(dd);sel={k:'dim',id:dd.id};draft=null;commit();setTool('select');return}}draft=null;render();return}
  commit();renderProps();render()}
@@ -522,12 +537,12 @@ const fT=(l,k,v)=>`<label class="f">${l}<input class="inp" data-k="${k}" value="
 const fC=(l,k,v)=>`<label class="f">${l}<input type="color" class="inp" data-k="${k}" value="${/^#[0-9a-f]{6}$/i.test(v)?v:'#cccccc'}" style="padding:2px 4px"></label>`;
 const fS=(l,k,v,opts)=>`<label class="f">${l}<select class="inp" data-k="${k}">${opts.map(([a,b])=>`<option value="${a}"${a==v?' selected':''}>${b}</option>`).join('')}</select></label>`;
 const pAct=(a,t,cls='sec')=>`<button class="btn sm ${cls}" data-a="${a}">${t}</button>`;
-function renderProps(){const el=$('#props');if(!D){el.innerHTML='';return}const o=getSel();let h='';
+function renderProps(){const el=$('#props');if(!D){el.innerHTML='';return}const o=getSel();let h='';if(msel.length>1){el.innerHTML=groupProps();if(innerWidth<=760)el.classList.add('open');return}
  if(!o){const f=F();let A=0;f.rooms.forEach(r=>{if(!r.plot)A+=Math.abs(polyArea(r.pts))});const wb=wallBounds(f);
   h=`<div class="pt">📐 المشروع</div>${fT('اسم المشروع','pn',cur.n)}
-  <div class="row">${fN('الشبكة (سم)','grid',D.grid,5)}${fN('سماكة الجدار','wt',D.wt)}</div>${fN('ارتفاع الجدار (سم)','wh',D.wh,10)}${D.req&&D.req.cn?`<div class="stat"><span>العميل</span><b>${esc(D.req.cn)}</b></div>`:''}<button class="btn sm" data-a="req" style="width:100%;margin:6px 0">📝 بيانات العميل والمتطلبات</button>${wb?`<hr class="sep"><div class="pt">📏 أبعاد البناء</div><div class="row">${fN('العرض (سم)','bw',wb.w,10)}${fN('الطول (سم)','bl',wb.h,10)}</div><div class="stat"><span>مساحة البناء</span><b>${fmtA(wb.w*wb.h)}</b></div>${D.floors.length>1?`<label class="ck"><input type="checkbox" data-k="allF" ${D.allF!==false?'checked':''}> تطبيق تعديل المقاسات على كل الطوابق</label>`:''}<div class="mu">اكتب الرقم واضغط Enter لتكبير المخطط أو تصغيره.</div>`:''}
+  <div class="row">${fN('الشبكة (سم)','grid',D.grid,5)}${fN('سماكة الجدار','wt',D.wt)}</div>${fN('ارتفاع الجدار (سم)','wh',D.wh,10)}${D.req&&D.req.cn?`<div class="stat"><span>العميل</span><b>${esc(D.req.cn)}</b></div>`:''}<button class="btn sm" data-a="req" style="width:100%;margin:6px 0">📝 بيانات العميل والمتطلبات</button><div class="row">${pAct('presets','🗺 جاهزة')}${pAct('boq','💰 الكميات')}${pAct('elev','🏛 الواجهات')}</div>${wb?`<hr class="sep"><div class="pt">📏 أبعاد البناء</div><div class="row">${fN('العرض (سم)','bw',wb.w,10)}${fN('الطول (سم)','bl',wb.h,10)}</div><div class="stat"><span>مساحة البناء</span><b>${fmtA(wb.w*wb.h)}</b></div>${D.floors.length>1?`<label class="ck"><input type="checkbox" data-k="allF" ${D.allF!==false?'checked':''}> تطبيق تعديل المقاسات على كل الطوابق</label>`:''}<div class="mu">اكتب الرقم واضغط Enter لتكبير المخطط أو تصغيره.</div>`:''}
   <label class="ck"><input type="checkbox" data-k="showLen" ${cfg.showLen?'checked':''}> إظهار أطوال الجدران</label>
-  <hr class="sep"><div class="pt">🏢 الطابق الحالي</div>${fT('اسم الطابق','fn',f.n)}${fN('ارتفاع الطابق (سم)','fh',f.h||300,10)}
+  <hr class="sep"><div class="pt">🏢 الطابق الحالي</div>${fT('اسم الطابق','fn',f.n)}${fN('ارتفاع الطابق (سم)','fh',f.h||300,10)}${bgProps(f)}${layerProps()}<hr class="sep">
   <div class="row">${pAct('floorAdd','＋ طابق جديد')}${pAct('floorDup','⧉ نسخ الطابق')}</div><div class="row" style="margin-top:6px">${D.floors.length>1?pAct('floorDel','🗑 حذف الطابق','dan'):''}</div>
   <hr class="sep"><div class="pt">📊 الإحصاءات</div>
   <div class="stat"><span>الجدران</span><b>${f.walls.length}</b></div><div class="stat"><span>الغرف</span><b>${f.rooms.length}</b></div><div class="stat"><span>الأبواب والنوافذ</span><b>${f.ops.length}</b></div><div class="stat"><span>قطع الأثاث</span><b>${f.items.length}</b></div><div class="stat"><span>مجموع مساحة الغرف</span><b>${fmtA(A)}</b></div>
@@ -535,13 +550,13 @@ function renderProps(){const el=$('#props');if(!D){el.innerHTML='';return}const 
   <hr class="sep"><div class="mu">💡 اختر أداة من الشريط وابدأ الرسم. اسحب المساحة الفارغة للتحريك، والعجلة للتكبير. اضغط على أي عنصر لتعديله.</div><div class="cred credH">${credHTML()}</div>`}
  else if(sel.k==='wall'){h=`<div class="pt">▬ جدار</div>${fN('الطول (سم)','len',wl(o))}<div class="row">${fN('السماكة','t',o.t)}${fN('الارتفاع','h',o.h,10)}</div>${fC('لون الجدار (3D)','c',o.c)}<div class="row">${pAct('split','✂ تقسيم')}${pAct('dup','⧉ نسخ')}</div><div class="row" style="margin-top:6px">${pAct('del','🗑 حذف','dan')}</div><div class="mu" style="margin-top:8px">اسحب النقاط البيضاء لتغيير طرفي الجدار، والجدران المتصلة تتحرك معه.</div>`}
  else if(sel.k==='op'){h=`<div class="pt">🚪 ${ONAME[o.t]}</div>${fS('النوع','t',o.t,Object.entries(ONAME))}<div class="row">${fN('العرض','wd',o.wd)}${fN('الارتفاع','h',o.h)}</div>${o.t==='window'?fN('ارتفاع الجلسة عن الأرض','sl',o.sl):''}${o.t==='door'||o.t==='door2'?`<div class="row">${o.t==='door'?pAct('flipH','⇄ عكس المفصلة'):''}${pAct('flipS','⇅ عكس الفتح')}</div>`:''}<div class="row" style="margin-top:6px">${pAct('del','🗑 حذف','dan')}</div><div class="mu" style="margin-top:8px">اسحبه على الجدار لتغيير موضعه.</div>`}
- else if(sel.k==='room'){const A=Math.abs(polyArea(o.pts)),rb=roomBox(o);h=`<div class="pt">⬠ غرفة / أرضية</div>${fT('الاسم','n',o.n)}<div class="card" style="padding:8px 10px;margin:6px 0"><b style="font-size:13px">📏 المقاسات</b>${isRect(o)?`<div class="row">${fN('العرض (سم)','rw',rb.w,10)}${fN('الطول (سم)','rl',rb.h,10)}</div>`:''}<label class="f">المساحة (م²)<input class="inp" type="number" data-k="ra" value="${(A/1e4).toFixed(2)}" step="0.5"></label><div class="mu">اكتب الرقم واضغط Enter. ${isRect(o)?'تتحرك الجدران والغرف المجاورة معها.':'الشكل غير مستطيل: تتغير الأرضية فقط.'}</div></div>${fS('نوع الأرضية','m',o.m,Object.entries(FLOORS).map(([k,v])=>[k,v.n]))}${fC('اللون','c',o.c||(FLOORS[o.m]||FLOORS.tile).c)}<div class="stat"><span>المساحة</span><b>${fmtA(A)}</b></div><div class="stat"><span>المحيط</span><b>${fmtL(polyPer(o.pts))}</b></div><div class="row" style="margin-top:8px">${pAct('walls','▬ جدران حولها')}${pAct('dup','⧉ نسخ')}</div><div class="row" style="margin-top:6px">${pAct('resetC','↺ اللون الافتراضي')}${pAct('del','🗑 حذف','dan')}</div>`}
+ else if(sel.k==='room'){const A=Math.abs(polyArea(o.pts)),rb=roomBox(o);h=`<div class="pt">⬠ غرفة / أرضية</div>${fT('الاسم','n',o.n)}<div class="card" style="padding:8px 10px;margin:6px 0"><b style="font-size:13px">📏 المقاسات</b>${isRect(o)?`<div class="row">${fN('العرض (سم)','rw',rb.w,10)}${fN('الطول (سم)','rl',rb.h,10)}</div>`:''}<label class="f">المساحة (م²)<input class="inp" type="number" data-k="ra" value="${(A/1e4).toFixed(2)}" step="0.5"></label><div class="mu">اكتب الرقم واضغط Enter. ${isRect(o)?'تتحرك الجدران والغرف المجاورة معها.':'الشكل غير مستطيل: تتغير الأرضية فقط.'}</div></div>${fS('نوع الأرضية','m',o.m,Object.entries(FLOORS).map(([k,v])=>[k,v.n]))}${fC('اللون','c',o.c||(FLOORS[o.m]||FLOORS.tile).c)}<div class="stat"><span>المساحة</span><b>${fmtA(A)}</b></div><div class="stat"><span>المحيط</span><b>${fmtL(polyPer(o.pts))}</b></div><div class="row" style="margin-top:8px">${pAct('walls','▬ جدران حولها')}${pAct('dupFull','⧉ نسخ مع المحتويات')}</div><div class="row" style="margin-top:6px">${pAct('resetC','↺ اللون الافتراضي')}${pAct('del','🗑 حذف','dan')}</div>`}
  else if(sel.k==='item'){const d=DEF[o.t]||{};h=`<div class="pt">🛋 ${esc(d.n||'قطعة')}</div><div class="row">${fN('العرض','w',o.w)}${fN('العمق','d',o.d)}</div><div class="row">${fN('الارتفاع','h',o.h)}${fN('الارتفاع عن الأرض','z',o.z||0)}</div>${fN('الدوران (درجة)','r',o.r,15)}<div class="row">${pAct('rot-','⟲ ٩٠°')}${pAct('rot+','⟳ ٩٠°')}</div>${fC('اللون','c',o.c)}<div class="row" style="margin-top:6px">${pAct('dup','⧉ نسخ')}${pAct('front','⬆ للأمام')}${pAct('back','⬇ للخلف')}</div><div class="row" style="margin-top:6px">${pAct('resetS','↺ المقاس الأصلي')}${pAct('del','🗑 حذف','dan')}</div>`}
  else if(sel.k==='label'){h=`<div class="pt">T نص</div>${fT('النص','tx',o.tx)}${fN('الحجم (سم)','sz',o.sz||30,5)}${fC('اللون','c',o.c||'#222222')}<div class="row">${pAct('dup','⧉ نسخ')}${pAct('del','🗑 حذف','dan')}</div>`}
  else if(sel.k==='dim'){h=`<div class="pt">↔ خط قياس</div><div class="stat"><span>الطول</span><b>${fmtL(Math.hypot(o.x2-o.x1,o.y2-o.y1))}</b></div><div class="row" style="margin-top:8px">${pAct('del','🗑 حذف','dan')}</div>`}
  el.innerHTML=h;if(innerWidth<=760){el.classList.toggle('open',!!o)}}
 function setProp(k,v,el){const o=getSel(),f=F();
- if(!o){if(k==='pn'){cur.n=v||'مشروع';$('#pname').textContent=cur.n}else if(k==='grid'){if(v>0)D.grid=v}else if(k==='wt'){if(v>0)D.wt=v}else if(k==='wh'){if(v>0)D.wh=v}else if(k==='showLen'){cfg.showLen=v;saveCfg()}else if(k==='fn'){f.n=v;fillFloors()}else if(k==='allF'){D.allF=v}else if(k==='fh'){if(v>0)f.h=v}render();return}
+ if(!o){if(k==='pn'){cur.n=v||'مشروع';$('#pname').textContent=cur.n}else if(k==='grid'){if(v>0)D.grid=v}else if(k==='wt'){if(v>0)D.wt=v}else if(k==='wh'){if(v>0)D.wh=v}else if(k==='showLen'){cfg.showLen=v;saveCfg()}else if(k==='fn'){f.n=v;fillFloors()}else if(k==='allF'){D.allF=v}else if(/^(bg|lay)/.test(k)){setBgLay(k,v);return}else if(k==='fh'){if(v>0)f.h=v}render();return}
  if(typeof v==='number'&&isNaN(v))return;
  if(sel.k==='wall'&&k==='len'){if(v<=0)return;const L=wl(o)||1,J=joints(o.x2,o.y2,o);o.x2=r1(o.x1+(o.x2-o.x1)/L*v);o.y2=r1(o.y1+(o.y2-o.y1)/L*v);moveJ(J,o.x2,o.y2)}
  else if(['t','h','w','d','wd','sz'].includes(k)&&typeof v==='number'){if(v<=0)return;o[k]=v}
@@ -551,7 +566,7 @@ function setProp(k,v,el){const o=getSel(),f=F();
  render()}
 $('#props').addEventListener('input',e=>{const el=e.target,k=el.dataset.k;if(!k||DIMK.includes(k))return;const v=el.type==='number'?parseFloat(el.value):el.type==='checkbox'?el.checked:el.value;setProp(k,v,el);commitSoon()});
 $('#props').addEventListener('change',e=>{const dk=e.target.dataset.k;if(DIMK.includes(dk)){applyDim(dk,parseFloat(e.target.value));return}if(dk){commit();if(e.target.tagName==='SELECT')renderProps()}});
-$('#props').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,o=getSel(),f=F();
+$('#props').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,o=getSel(),f=F();if(propAct(a))return;
  if(a==='del'){deleteSel();return}
  if(a==='dup'){duplicateSel();return}
  if(a==='req'){reqPanel();return}
@@ -572,12 +587,12 @@ $('#floorSel').onchange=e=>{const v=e.target.value;if(v==='+'){D.floors.push(new
 function refreshAll(){if(!D)return;$('#pname').textContent=cur.n;fillFloors();renderProps();render();updUR();if(mode===3){dirty3=true;req3()}}
 
 /* ======= لوحة المفاتيح ======= */
-document.addEventListener('keydown',e=>{if($('#app').classList.contains('hide'))return;const inF=/INPUT|TEXTAREA|SELECT/.test(e.target.tagName);const k=e.key.toLowerCase();
+document.addEventListener('keydown',e=>{if($('#app').classList.contains('hide'))return;const inF=/INPUT|TEXTAREA|SELECT/.test(e.target.tagName);const k=e.key.toLowerCase();if(VIEW){if(mode===3&&!inF){keys3.add(k);req3()}return}
  if((e.ctrlKey||e.metaKey)&&!inF){if(k==='z'&&!e.shiftKey){e.preventDefault();undo();return}if(k==='y'||(k==='z'&&e.shiftKey)){e.preventDefault();redo();return}if(k==='d'){e.preventDefault();duplicateSel();return}if(k==='c'){const o=getSel();if(o&&sel.k==='item'){clip=JSON.parse(JSON.stringify(o));toast('نُسخت القطعة')}return}if(k==='v'&&clip){const n=JSON.parse(JSON.stringify(clip));n.id=uid();if(mouse){n.x=snapG(mouse.x);n.y=snapG(mouse.y)}else{n.x+=30;n.y+=30}F().items.push(n);sel={k:'item',id:n.id};commit();render();renderProps();return}}
  if(inF||$('#pnl').classList.contains('show'))return;
  if(mode===3){keys3.add(k);req3();return}
- if(k==='escape'){if(draft){finishDraft()}else if(tool!=='select')setTool('select');else{sel=null;renderProps();render()}return}
- if((k==='delete'||k==='backspace')&&sel){e.preventDefault();deleteSel();return}
+ if(k==='escape'){if(draft){finishDraft()}else if(tool!=='select')setTool('select');else{sel=null;msel=[];renderProps();render()}return}
+ if((k==='delete'||k==='backspace')&&(sel||msel.length>1)){e.preventDefault();deleteSel();return}
  if(k===' '){spaceDown=true;e.preventDefault();return}
  if(k==='r'){if(tool==='place'){placeRot=(placeRot+90)%360;render()}else{const o=getSel();if(o&&sel.k==='item'){o.r=(o.r+90)%360;commit();renderProps();render()}}return}
  if(k==='enter'&&draft){finishDraft();return}
@@ -595,8 +610,8 @@ $('#libQ').oninput=renderLib;
 $('#libB').addEventListener('click',e=>{const b=e.target.closest('.li');if(!b)return;placing=b.dataset.t;placeRot=0;sel=null;$('#lib').classList.remove('show');setTool('place');toast('انقر على المخطط لوضع '+DEF[placing].n)});
 
 /* ======= العرض ثلاثي الأبعاد (WebGL مدمج بلا مكتبات) ======= */
-const VS='attribute vec3 p;attribute vec3 n;attribute vec4 c;uniform mat4 M;varying vec4 vc;varying vec3 vn;void main(){gl_Position=M*vec4(p,1.0);vc=c;vn=n;}';
-const FS='precision mediump float;varying vec4 vc;varying vec3 vn;void main(){vec3 N=normalize(vn);float d=max(dot(N,normalize(vec3(.45,.85,.3))),0.0);float d2=max(dot(N,normalize(vec3(-.6,.35,-.7))),0.0);gl_FragColor=vec4(vc.rgb*(.5+.42*d+.18*d2),vc.a);}';
+const VS='attribute vec3 p;attribute vec3 n;attribute vec4 c;attribute vec2 m;uniform mat4 M;varying vec4 vc;varying vec3 vn;varying vec3 wp;varying vec2 vm;void main(){gl_Position=M*vec4(p,1.0);vc=c;vn=n;wp=p;vm=m;}';
+const FS='precision mediump float;varying vec4 vc;varying vec3 vn;varying vec3 wp;varying vec2 vm;float h(vec2 q){return fract(sin(dot(q,vec2(12.9898,78.233)))*43758.5453);}void main(){vec3 N=normalize(vn);vec3 col=vc.rgb;float pt=vm.x;vec2 uv=wp.xz/max(vm.y,.01);if(pt>.5&&pt<1.5){vec2 g=abs(fract(uv)-.5);col*=1.-.2*step(.465,max(g.x,g.y));col*=.96+.06*h(floor(uv));}else if(pt>1.5&&pt<2.5){float r=floor(uv.y*4.);float o=h(vec2(r,3.));float sm=step(.975,fract(uv.x+o));float rl=step(.93,fract(uv.y*4.));col*=.93+.12*h(vec2(r,floor(uv.x+o)))-.22*max(sm,rl);}else if(pt>2.5&&pt<3.5){float v=sin(uv.x*5.+sin(uv.y*3.)*2.+sin(uv.x*1.7+uv.y*2.3)*1.6);col*=.93+.07*v;vec2 g=abs(fract(uv)-.5);col*=1.-.12*step(.48,max(g.x,g.y));}else if(pt>3.5&&pt<4.5){col*=.9+.14*h(floor(uv*10.));}else if(pt>4.5&&pt<5.5){vec2 q=uv*vec2(1.,2.);q.x+=step(1.,mod(floor(q.y),2.))*.5;vec2 g=abs(fract(q)-.5);col*=(1.-.22*step(.46,max(g.x,g.y)))*(.94+.08*h(floor(q)));}float d=max(dot(N,normalize(vec3(.45,.85,.3))),0.0);float d2=max(dot(N,normalize(vec3(-.6,.35,-.7))),0.0);float hemi=mix(.88,1.04,N.y*.5+.5);float lit=pt>8.5?1.35:(.46+.42*d+.16*d2)*hemi;gl_FragColor=vec4(min(col*lit,vec3(1.)),vc.a);}';
 let gl=null,glP,glB,glTB,glN=0,glTN=0,dirty3=true,an3=0,last3=0,m3='orbit',low3=false,all3=false,camInit=false;
 const keys3=new Set();
 const cam={yaw:.7,pitch:.8,dist:18,tx:6,ty:0,tz:4.5},wk={x:0,y:1.6,z:0,yaw:0,pitch:0};
@@ -606,10 +621,10 @@ function persp(fy,a,n,f){const t=1/Math.tan(fy/2),nf=1/(n-f);return[t/a,0,0,0,0,
 function lookAt(e,c,u){const z=nrm(sub(e,c)),x=nrm(crs(u,z)),y=crs(z,x);return[x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,e),-dot(y,e),-dot(z,e),1]}
 function mul(a,b){const r=new Array(16);for(let i=0;i<4;i++)for(let j=0;j<4;j++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+j]*b[i*4+k];r[i*4+j]=s}return r}
 function initGL(){if(gl)return true;try{gl=c3.getContext('webgl',{antialias:true,preserveDrawingBuffer:true})||c3.getContext('experimental-webgl',{preserveDrawingBuffer:true})}catch(e){gl=null}if(!gl){toast('هذا المتصفح لا يدعم العرض ثلاثي الأبعاد (WebGL)');return false}
- const sh=(t,s)=>{const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o};glP=gl.createProgram();gl.attachShader(glP,sh(gl.VERTEX_SHADER,VS));gl.attachShader(glP,sh(gl.FRAGMENT_SHADER,FS));gl.bindAttribLocation(glP,0,'p');gl.bindAttribLocation(glP,1,'n');gl.bindAttribLocation(glP,2,'c');gl.linkProgram(glP);gl.useProgram(glP);glB=gl.createBuffer();glTB=gl.createBuffer();return true}
+ const sh=(t,s)=>{const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o};glP=gl.createProgram();gl.attachShader(glP,sh(gl.VERTEX_SHADER,VS));gl.attachShader(glP,sh(gl.FRAGMENT_SHADER,FS));gl.bindAttribLocation(glP,0,'p');gl.bindAttribLocation(glP,1,'n');gl.bindAttribLocation(glP,2,'c');gl.bindAttribLocation(glP,3,'m');gl.linkProgram(glP);gl.useProgram(glP);glB=gl.createBuffer();glTB=gl.createBuffer();return true}
 function floorElevs(){const e=[];let s=0;D.floors.forEach((f,i)=>{e[i]=s;s+=(f.h||300)});return e}
-function build3D(){const A=[],Tr=[];
- const V=(arr,p,n,c)=>arr.push(p[0],p[1],p[2],n[0],n[1],n[2],c[0],c[1],c[2],c[3]);
+function build3D(){const A=[],Tr=[];let curPat=[0,1];
+ const V=(arr,p,n,c)=>arr.push(p[0],p[1],p[2],n[0],n[1],n[2],c[0],c[1],c[2],c[3],curPat[0],curPat[1]);
  const tri=(arr,a,b,c,n,col)=>{V(arr,a,n,col);V(arr,b,n,col);V(arr,c,n,col)};
  function prism(pts,y0,y1,col,bot){if(y1-y0<1e-4)return;const arr=col[3]<1?Tr:A,n=pts.length;let ar=0;for(let i=0;i<n;i++){const a=pts[i],b=pts[(i+1)%n];ar+=a[0]*b[1]-b[0]*a[1]}const sg=ar>0?1:-1;
   for(let i=0;i<n;i++){const a=pts[i],b=pts[(i+1)%n],dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz)||1,nr=[sg*dz/L,0,-sg*dx/L];tri(arr,[a[0],y0,a[1]],[b[0],y0,b[1]],[b[0],y1,b[1]],nr,col);tri(arr,[a[0],y0,a[1]],[b[0],y1,b[1]],[a[0],y1,a[1]],nr,col)}
@@ -617,7 +632,8 @@ function build3D(){const A=[],Tr=[];
  const el=floorElevs(),show=all3?D.floors.map((f,i)=>i):[D.fi];
  let gb={x0:1e9,y0:1e9,x1:-1e9,y1:-1e9};
  for(const fi of show){const f=D.floors[fi],E=all3?el[fi]:0,b=bounds(f);gb={x0:Math.min(gb.x0,b.x0),y0:Math.min(gb.y0,b.y0),x1:Math.max(gb.x1,b.x1),y1:Math.max(gb.y1,b.y1)};const m=v=>v/100;
-  for(const r of f.rooms){if(r.pts.length<3)continue;const col=rgba(r.c||(FLOORS[r.m]||FLOORS.tile).c);const y=m(E+(r.plot?.3:1.5));for(const t of earcut(r.pts)){const P=t.map(i=>[m(r.pts[i][0]),y,m(r.pts[i][1])]);tri(A,P[0],P[1],P[2],[0,1,0],col)}if(E>0){const pts=r.pts.map(p=>[m(p[0]),m(p[1])]);if(polyArea(r.pts)!==0&&r.pts.length===4)prism(pts,m(E-15),m(E+.5),rgba('#bdb8ae'),true)}}
+  for(const r of f.rooms){if(r.pts.length<3)continue;const col=rgba(r.c||(FLOORS[r.m]||FLOORS.tile).c);const y=m(E+(r.plot?.3:1.5));curPat=[PATID[(FLOORS[r.m]||{}).p]||0,((FLOORS[r.m]||FLOORS.tile).z)/100];for(const t of earcut(r.pts)){const P=t.map(i=>[m(r.pts[i][0]),y,m(r.pts[i][1])]);tri(A,P[0],P[1],P[2],[0,1,0],col)}if(E>0){const pts=r.pts.map(p=>[m(p[0]),m(p[1])]);if(polyArea(r.pts)!==0&&r.pts.length===4)prism(pts,m(E-15),m(E+.5),rgba('#bdb8ae'),true)}}
+  curPat=[0,1];if(ceil3&&!low3){const ch=m(E+(f.h||D.wh||300)-2),cc=rgba('#f6f4ef');for(const r of f.rooms){if(r.plot||r.pts.length<3)continue;for(const t of earcut(r.pts)){const P=t.map(i=>[m(r.pts[i][0]),ch,m(r.pts[i][1])]);tri(A,P[0],P[1],P[2],[0,-1,0],cc)}}}
   for(const w of f.walls){const g=wallSegs(w,f),t=w.t/2,Hw=low3?Math.min(w.h,110):w.h,col=rgba(w.c||'#f3efe8');const R=(a,b,n1,n2)=>[[m(w.x1+g.ux*a+g.nx*n1),m(w.y1+g.uy*a+g.ny*n1)],[m(w.x1+g.ux*b+g.nx*n1),m(w.y1+g.uy*b+g.ny*n1)],[m(w.x1+g.ux*b+g.nx*n2),m(w.y1+g.uy*b+g.ny*n2)],[m(w.x1+g.ux*a+g.nx*n2),m(w.y1+g.uy*a+g.ny*n2)]];
    for(const [a0,b0] of g.solid){const a=a0<=0?-t:a0,b=b0>=g.L?g.L+t:b0;prism(R(a,b,t,-t),m(E),m(E+Hw),col)}
    for(const {o,a,b} of g.ops){const glass=rgba('g');
@@ -625,13 +641,13 @@ function build3D(){const A=[],Tr=[];
     else{const top=Math.min(o.h,Hw);if(top<Hw)prism(R(a,b,t,-t),m(E+top),m(E+Hw),col,true);
      if(o.t==='slide'){prism(R(a,(a+b)/2+4,t/3+1.5,t/3-1.5),m(E),m(E+top-1),glass);prism(R((a+b)/2-4,b,-t/3+1.5,-t/3-1.5),m(E),m(E+top-1),glass)}
      else{const fs=o.fs||1,leaves=o.t==='door2'?[[a,(b-a)/2,1],[b,(b-a)/2,-1]]:[[o.fh?b:a,b-a,o.fh?-1:1]];for(const [hd,len,dir] of leaves){const hx=w.x1+g.ux*hd+g.nx*fs*t,hy=w.y1+g.uy*hd+g.ny*fs*t,jx=g.ux*dir,jy=g.uy*dir,lx=g.nx*fs,ly=g.ny*fs;const P=[[hx,hy],[hx+lx*len,hy+ly*len],[hx+lx*len+jx*4,hy+ly*len+jy*4],[hx+jx*4,hy+jy*4]].map(q=>[m(q[0]),m(q[1])]);prism(P,m(E),m(E+top-2),rgba('#8b5e3c'))}}}}}
-  for(const it of f.items){const a=it.r*Math.PI/180,c=Math.cos(a),s=Math.sin(a);const W=(x,y)=>{x-=it.w/2;y-=it.d/2;return[m(it.x+x*c-y*s),m(it.y+x*s+y*c)]};
+  for(const it of f.items){if(!itemVis(it))continue;curPat=[(DEF[it.t]||{}).emit?9:0,1];const a=it.r*Math.PI/180,c=Math.cos(a),s=Math.sin(a);const W=(x,y)=>{x-=it.w/2;y-=it.d/2;return[m(it.x+x*c-y*s),m(it.y+x*s+y*c)]};
    for(const p of itemParts(it)){let pts;if(p[7]==='c'){const cx=(p[0]+p[3])/2,cy=(p[1]+p[4])/2,rx=Math.abs(p[3]-p[0])/2,ry=Math.abs(p[4]-p[1])/2;pts=[];for(let k=0;k<16;k++){const t=k/16*Math.PI*2;pts.push(W(cx+Math.cos(t)*rx,cy+Math.sin(t)*ry))}}else pts=[W(p[0],p[1]),W(p[3],p[1]),W(p[3],p[4]),W(p[0],p[4])];const z0=E+(it.z||0)+p[2];prism(pts,m(z0),m(E+(it.z||0)+p[5]),rgba(partCol(it,p[6])),z0-E>.5)}}
  }
- if(gb.x0<1e8){const pd=1500,y=-.01,col=rgba(document.body.classList.contains('dark')?'#2a3128':'#cfd8c2');const x0=(gb.x0-pd)/100,x1=(gb.x1+pd)/100,z0=(gb.y0-pd)/100,z1=(gb.y1+pd)/100;tri(A,[x0,y,z0],[x1,y,z0],[x1,y,z1],[0,1,0],col);tri(A,[x0,y,z0],[x1,y,z1],[x0,y,z1],[0,1,0],col)}
+ curPat=[0,1];if(gb.x0<1e8){const pd=1500,y=-.01,col=rgba(document.body.classList.contains('dark')?'#2a3128':'#cfd8c2');const x0=(gb.x0-pd)/100,x1=(gb.x1+pd)/100,z0=(gb.y0-pd)/100,z1=(gb.y1+pd)/100;tri(A,[x0,y,z0],[x1,y,z0],[x1,y,z1],[0,1,0],col);tri(A,[x0,y,z0],[x1,y,z1],[x0,y,z1],[0,1,0],col)}
  return{A,Tr,gb}}
-function upload3(){const r=build3D();gl.bindBuffer(gl.ARRAY_BUFFER,glB);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(r.A),gl.STATIC_DRAW);glN=r.A.length/10;gl.bindBuffer(gl.ARRAY_BUFFER,glTB);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(r.Tr),gl.STATIC_DRAW);glTN=r.Tr.length/10;dirty3=false}
-function attribs(){gl.vertexAttribPointer(0,3,gl.FLOAT,false,40,0);gl.vertexAttribPointer(1,3,gl.FLOAT,false,40,12);gl.vertexAttribPointer(2,4,gl.FLOAT,false,40,24);gl.enableVertexAttribArray(0);gl.enableVertexAttribArray(1);gl.enableVertexAttribArray(2)}
+function upload3(){const r=build3D();gl.bindBuffer(gl.ARRAY_BUFFER,glB);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(r.A),gl.STATIC_DRAW);glN=r.A.length/12;gl.bindBuffer(gl.ARRAY_BUFFER,glTB);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(r.Tr),gl.STATIC_DRAW);glTN=r.Tr.length/12;dirty3=false}
+function attribs(){gl.vertexAttribPointer(0,3,gl.FLOAT,false,48,0);gl.vertexAttribPointer(1,3,gl.FLOAT,false,48,12);gl.vertexAttribPointer(2,4,gl.FLOAT,false,48,24);gl.vertexAttribPointer(3,2,gl.FLOAT,false,48,40);[0,1,2,3].forEach(i=>gl.enableVertexAttribArray(i))}
 function draw3(){if(!gl||!D)return;if(dirty3)upload3();const r=c3.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);const W=Math.max(1,Math.round(r.width*dpr)),Hh=Math.max(1,Math.round(r.height*dpr));if(c3.width!==W||c3.height!==Hh){c3.width=W;c3.height=Hh}gl.viewport(0,0,W,Hh);const dk=document.body.classList.contains('dark');gl.clearColor(dk?.09:.84,dk?.11:.9,dk?.15:.97,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);
  let eye,tgt;if(m3==='walk'){eye=[wk.x,wk.y,wk.z];tgt=[wk.x+Math.cos(wk.pitch)*Math.sin(wk.yaw),wk.y+Math.sin(wk.pitch),wk.z+Math.cos(wk.pitch)*Math.cos(wk.yaw)]}else{eye=[cam.tx+cam.dist*Math.cos(cam.pitch)*Math.sin(cam.yaw),cam.ty+cam.dist*Math.sin(cam.pitch),cam.tz+cam.dist*Math.cos(cam.pitch)*Math.cos(cam.yaw)];tgt=[cam.tx,cam.ty,cam.tz]}
  const M=mul(persp(m3==='walk'?1.25:.9,W/Hh,.05,900),lookAt(eye,tgt,[0,1,0]));gl.uniformMatrix4fv(gl.getUniformLocation(glP,'M'),false,new Float32Array(M));
@@ -657,11 +673,11 @@ c3.addEventListener('wheel',e=>{e.preventDefault();if(m3==='walk'){const f=-e.de
 $('#joy').addEventListener('pointerdown',e=>{const b=e.target.closest('button');if(!b)return;b.setPointerCapture(e.pointerId);keys3.add('j'+b.dataset.k);req3()});
 ['pointerup','pointercancel','pointerleave'].forEach(ev=>$('#joy').addEventListener(ev,e=>{const b=e.target.closest('button');if(b)keys3.delete('j'+b.dataset.k)}));
 window.addEventListener('blur',()=>keys3.clear());
-function set3(k){if(k==='o'||k==='w'){m3=k==='o'?'orbit':'walk';$('#m3o').classList.toggle('on',m3==='orbit');$('#m3w').classList.toggle('on',m3==='walk');$('#joy').classList.toggle('hide',m3!=='walk');if(m3==='walk')toast('تجوّل: اسحب للنظر · W/S أو الأسهم للحركة · العجلة للتقدّم')}
+function set3(k){if(k==='c'){ceil3=!ceil3;$('#m3c').classList.toggle('on',ceil3);dirty3=true}if(k==='o'||k==='w'){m3=k==='o'?'orbit':'walk';ceil3=m3==='walk';$('#m3c').classList.toggle('on',ceil3);dirty3=true;$('#m3o').classList.toggle('on',m3==='orbit');$('#m3w').classList.toggle('on',m3==='walk');$('#joy').classList.toggle('hide',m3!=='walk');if(m3==='walk')toast('تجوّل: اسحب للنظر · W/S أو الأسهم للحركة · العجلة للتقدّم')}
  if(k==='low'){low3=!low3;$('#m3low').classList.toggle('on',low3);dirty3=true}
  if(k==='all'){all3=!all3;$('#m3all').classList.toggle('on',all3);dirty3=true;resetCam()}
  if(k==='r')resetCam();if(k==='s')shot3D();req3()}
-$('#m3o').onclick=()=>set3('o');$('#m3w').onclick=()=>set3('w');$('#m3low').onclick=()=>set3('low');$('#m3all').onclick=()=>set3('all');$('#m3r').onclick=()=>set3('r');$('#m3s').onclick=()=>set3('s');
+$('#m3o').onclick=()=>set3('o');$('#m3w').onclick=()=>set3('w');$('#m3low').onclick=()=>set3('low');$('#m3all').onclick=()=>set3('all');$('#m3r').onclick=()=>set3('r');$('#m3c').onclick=()=>set3('c');$('#m3s').onclick=()=>set3('s');
 function shot3D(){if(!gl)return;draw3();const c=document.createElement('canvas');c.width=c3.width;c.height=c3.height;const x=c.getContext('2d');x.drawImage(c3,0,0);if(isTrial())wmark(x,c.width,c.height);c.toBlob(b=>dl((cur?cur.n:'مخطط')+'-3D.png',b))}
 $('#v2').onclick=()=>setView(2);$('#v3').onclick=()=>setView(3);
 
@@ -722,8 +738,8 @@ let fileMode='';
 function pickFile(m){fileMode=m;const f=$('#fileIn');f.value='';f.click()}
 $('#fileIn').onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{let o;try{o=JSON.parse(r.result)}catch(err){toast('الملف غير صالح');return}if(fileMode==='backup')showRestore(o);else if(fileMode==='proj')importProject(o)};r.readAsText(file)};
 
-function menuPanel(){if(!me)return;const it=[],A=(i,n,f)=>it.push([i,n,f]);
- A('📁','المشاريع',projectsPanel);A('➕','مشروع جديد',newProjPanel);A('📝','بيانات العميل والمتطلبات',reqPanel);A('🛋','مكتبة الأثاث',()=>{closePanel();openLib()});A('🧊','العرض ثلاثي الأبعاد',()=>{closePanel();setView(3)});
+function menuPanel(){if(VIEW){viewMenu();return}if(!me)return;const it=[],A=(i,n,f)=>it.push([i,n,f]);
+ A('📁','المشاريع',projectsPanel);A('➕','مشروع جديد',newProjPanel);A('📝','بيانات العميل والمتطلبات',reqPanel);A('🗺','خرائط جاهزة (العراق والخليج)',()=>presetsPanel());A('💰','الكميات والكلفة',boqPanel);A('🏛','الواجهات',elevPanel);A('🔗','ملف عرض للعميل',makeViewer);A('🛋','مكتبة الأثاث',()=>{closePanel();openLib()});A('🧊','العرض ثلاثي الأبعاد',()=>{closePanel();setView(3)});
  A('🖨','طباعة / PDF',()=>{closePanel();printView()});A('🖼','صورة المخطط PNG',exportPNG);A('📷','صورة ثلاثية الأبعاد',()=>{closePanel();setView(3);setTimeout(shot3D,400)});
  A('📤','تصدير المشروع كملف',exportProject);A('📥','استيراد مشروع',()=>pickFile('proj'));
  if(isMgr()){A('👥','المستخدمون',usersPanel);A('🏢','معلومات المكتب',ciPanel);A('🎨','المظهر',themePanel);A('💾','النسخ الاحتياطي',backupPanel)}
@@ -743,7 +759,7 @@ function delProject(id){const i=projects.findIndex(p=>p.id===id);if(i<0)return;c
  const rm=()=>{const j=projects.indexOf(p);if(j>=0)projects.splice(j,1);sv('projects',projects);if(cur===p){const n=visProjects()[0];if(n)openProject(n);else createProject('مشروع جديد')}};
  const back=()=>{if(!projects.includes(p))projects.splice(Math.min(i,projects.length),0,p);sv('projects',projects)};
  rm();pushU(back,rm);toast('حُذف المشروع. اضغط ↶ تراجع لاسترجاعه');projectsPanel()}
-function newProjPanel(){const tp=tplList();openPanel('➕ مشروع جديد',`<div class="card"><label class="f">اسم المشروع<input id="npN" class="inp" value="مشروع جديد"></label><h3 style="margin-top:12px">ابدأ من:</h3><div class="mgrid"><button class="mbtn" data-s="blank"><i>📄</i>مخطط فارغ</button><button class="mbtn" data-s="req"><i>📝</i>من متطلبات العميل</button><button class="mbtn" data-s="sample"><i>🏠</i>شقة نموذجية</button>${tp.map((t,i)=>`<button class="mbtn" data-s="t${i}"><i>📐</i>${esc(t.n)}</button>`).join('')}</div></div>`,b=>{b.onclick=e=>{const t=e.target.closest('[data-s]');if(!t)return;const s=t.dataset.s,n=$('#npN').value.trim()||'مشروع جديد';if(s==='req'){createProject(n,newData());reqPanel();return}const d=s==='blank'?newData():s==='sample'?sampleData():JSON.parse(JSON.stringify(tp[+s.slice(1)].d));createProject(n,d);closePanel();toast('أُنشئ المشروع: '+n)}})}
+function newProjPanel(){const tp=tplList();openPanel('➕ مشروع جديد',`<div class="card"><label class="f">اسم المشروع<input id="npN" class="inp" value="مشروع جديد"></label><h3 style="margin-top:12px">ابدأ من:</h3><div class="mgrid"><button class="mbtn" data-s="blank"><i>📄</i>مخطط فارغ</button><button class="mbtn" data-s="pre"><i>🗺</i>خرائط جاهزة</button><button class="mbtn" data-s="req"><i>📝</i>من متطلبات العميل</button><button class="mbtn" data-s="sample"><i>🏠</i>شقة نموذجية</button>${tp.map((t,i)=>`<button class="mbtn" data-s="t${i}"><i>📐</i>${esc(t.n)}</button>`).join('')}</div></div>`,b=>{b.onclick=e=>{const t=e.target.closest('[data-s]');if(!t)return;const s=t.dataset.s,n=$('#npN').value.trim()||'مشروع جديد';if(s==='req'){createProject(n,newData());reqPanel();return}if(s==='pre'){presetsPanel();return}const d=s==='blank'?newData():s==='sample'?sampleData():JSON.parse(JSON.stringify(tp[+s.slice(1)].d));createProject(n,d);closePanel();toast('أُنشئ المشروع: '+n)}})}
 
 function usersPanel(){openPanel('👥 المستخدمون',`<div class="card"><h3>➕ إضافة مستخدم</h3><div class="row"><label class="f">الاسم<input id="uN" class="inp"></label><label class="f">اسم الدخول<input id="uU" class="inp" dir="ltr"></label></div><div class="row"><label class="f">كلمة المرور<input id="uP" class="inp" dir="ltr"></label><label class="f">الصلاحية<select id="uR" class="inp"><option value="user">مستخدم (يرى مشاريعه فقط)</option><option value="manager">مدير</option></select></label></div><button class="btn" data-a="add">إضافة</button></div>${users.map((u,i)=>`<div class="lrow"><div class="grow"><b>${esc(u.n||u.u)}</b><div class="mu"><span dir="ltr">${esc(u.u)}</span>${u.def?' · ⚠️ كلمة المرور الافتراضية':''}</div></div><select class="inp" data-r="${i}" style="width:auto"><option value="user"${u.role==='user'?' selected':''}>مستخدم</option><option value="manager"${u.role==='manager'?' selected':''}>مدير</option></select><input class="inp" data-pp="${i}" placeholder="كلمة مرور جديدة" style="width:150px" dir="ltr"><button class="btn sm sec" data-ps="${i}">حفظ</button>${me.u!==u.u?`<button class="btn sm dan" data-del="${i}">🗑</button>`:''}</div>`).join('')}`,b=>{
  b.onclick=e=>{const t=e.target.closest('button');if(!t)return;
@@ -792,6 +808,7 @@ function copiesPanel(){const L=ld('copies',[]);openPanel('📋 النسخ الص
 function helpPanel(){openPanel('❓ طريقة الاستخدام',`<div class="card"><h3>✏️ الرسم</h3><ul style="line-height:2;margin:0;padding-inline-start:20px"><li><b>جدار:</b> انقر للبداية ثم عند كل زاوية. انقر على آخر نقطة للإنهاء، والعودة لنقطة البداية تغلق الغرفة وتنشئ أرضيتها. اكتب الطول بالسنتيمتر في المربع واضغط Enter لرسم طول دقيق.</li><li><b>غرفة:</b> اسحب لرسم غرفة مستطيلة بجدرانها وأرضيتها.</li><li><b>أرضية:</b> ارسم حدود أرضية بأي شكل.</li><li><b>باب / نافذة:</b> انقر على أي جدار، ثم اسحبها على الجدار لتغيير موضعها.</li><li><b>أثاث:</b> اختر قطعة من المكتبة ثم انقر لوضعها. اسحب الدائرة الزرقاء للتدوير والمربع الأبيض لتغيير المقاس.</li><li><b>قياس:</b> اسحب بين نقطتين لإظهار المسافة.</li><li>الالتقاط التلقائي يلصق النقاط بأطراف الجدران والشبكة والزوايا ٤٥°. اضغط Shift لإيقافه.</li></ul></div>
 <div class="card"><h3>🖱 التحكم</h3><ul style="line-height:2;margin:0;padding-inline-start:20px"><li>اسحب المساحة الفارغة للتحريك، والعجلة أو إصبعين للتكبير.</li><li>اضغط على أي عنصر لتعديل مقاساته ولونه من لوحة الخصائص.</li><li>Ctrl+Z تراجع · Ctrl+Y إعادة · Delete حذف · Ctrl+D نسخ · R تدوير · Esc إنهاء.</li></ul></div>
 <div class="card"><h3>🧊 ثلاثي الأبعاد</h3><ul style="line-height:2;margin:0;padding-inline-start:20px"><li><b>دوران:</b> اسحب للدوران، وزر الفأرة الأيمن أو Shift للتحريك، والعجلة للتقريب.</li><li><b>تجوّل:</b> تمشَّ داخل الشقة. اسحب للنظر، وW/S أو الأسهم للحركة، أو أزرار الشاشة على الهاتف.</li><li><b>جدران منخفضة:</b> لرؤية التوزيع الداخلي من الأعلى.</li></ul></div>
+<div class="card"><h3>✨ أدوات إضافية</h3><ul style="line-height:2;margin:0;padding-inline-start:20px"><li><b>🗺 خرائط جاهزة:</b> بيوت عراقية وفلل خليجية وشقق، تُفتح كمشروع قابل للتعديل الكامل.</li><li><b>⬚ تحديد متعدد:</b> اسحب مربعاً حول العناصر أو Shift+نقر، ثم حرّكها أو انسخها أو دوّرها معاً.</li><li><b>🪄 كشف غرفة:</b> انقر داخل جدران مغلقة لإنشاء الأرضية ومساحتها الصافية.</li><li><b>🖼 صورة خلفية:</b> من لوحة الطابق، أضف صورة مخطط وعايرها بطول معروف وارسم فوقها.</li><li><b>💡 الكهرباء والصحيات:</b> من مكتبة الأثاث، ويمكن إخفاؤها من «الطبقات».</li><li><b>💰 الكميات:</b> طابوق وبياض وصبغ وأرضيات وخرسانة وكلفة تقريبية بأسعارك.</li><li><b>🏛 الواجهات:</b> أربع واجهات تُرسم تلقائياً.</li><li><b>🖨 الطباعة:</b> A4 أو A3 بمقياس ١:٥٠ أو ١:١٠٠ أو ١:٢٠٠ مع جدول عنوان.</li><li><b>🔗 ملف عرض للعميل:</b> ملف يفتحه العميل للمشاهدة والتجول ثلاثي الأبعاد بدون تعديل.</li></ul></div>
 <div class="card"><h3>💾 الحفظ</h3><div>يُحفظ كل تغيير تلقائياً في المتصفح على هذا الجهاز. نزّل نسخة احتياطية بانتظام من القائمة، لأن مسح بيانات المتصفح يمسح المشاريع.</div></div>`)}
 
 /* ======= بيانات العميل ومتطلباته ======= */
@@ -801,15 +818,15 @@ const REQF=[
  ['g','📏 الأرض والبناء'],
  ['pw','عرض الأرض (م)','n',10],['pl','طول الأرض (م)','n',20],['sf','الارتداد الأمامي (م)','n',3],['sb','الارتداد الخلفي (م)','n',2],['ss','الارتداد الجانبي (م)','n',0],['fl','عدد الطوابق','n',1],['fh','ارتفاع الطابق (م)','n',3],
  ['g','🏠 الغرف المطلوبة'],
- ['bd','غرف النوم','n',3],['ms','منها غرف ماستر','n',1],['bt','الحمامات','n',2],['lv','صالة معيشة','c',1],['gs','غرفة ضيوف / استقبال','c',1],['gr','كراج','c',1],['st','مخزن','c',0],['ld','غرفة غسيل','c',0],['kt','نوع المطبخ','s','closed',[['closed','مغلق'],['open','مفتوح على الصالة']]],
+ ['bd','غرف النوم','n',3],['ms','منها غرف ماستر','n',1],['bt','الحمامات','n',2],['lv','صالة معيشة','c',1],['gs','غرفة ضيوف / استقبال','c',1],['gr','كراج','c',1],['st','مخزن','c',0],['ld','غرفة غسيل','c',0],['mj','مجلس رجال (بمدخل خاص)','c',0],['dn','غرفة طعام','c',0],['md','غرفة خادمة','c',0],['dr','غرفة سائق','c',0],['pk','مواقف سيارات أمامية','c',0],['kt','نوع المطبخ','s','closed',[['closed','مغلق'],['open','مفتوح على الصالة']]],
  ['g','🎨 الطابع والميزانية'],
  ['sty','طابع التصميم','s','modern',[['modern','حديث'],['classic','كلاسيكي'],['arabic','شرقي'],['minimal','بسيط']]],['bg','الميزانية التقريبية','t',''],['dl','موعد التسليم','t',''],['nt','ملاحظات وطلبات خاصة','a','']
 ];
 const REQDEF=()=>{const o={};REQF.forEach(f=>{if(f[0]!=='g')o[f[0]]=f[3]});return o};
 const reqVals=()=>Object.assign(REQDEF(),(D&&D.req)||{});
 const STY={modern:{wall:'#f2f2f0',liv:'wood',bed:'wood',hall:'tile',sofa:'#6d7b8d',wood:'#8b6a4f',dark:'#3d4148'},classic:{wall:'#f3eadb',liv:'marble',bed:'carpet',hall:'marble',sofa:'#8a5a44',wood:'#6b4226',dark:'#4a3426'},arabic:{wall:'#efe3cf',liv:'stone',bed:'carpet',hall:'stone',sofa:'#9b3d2e',wood:'#7a4b2a',dark:'#3a2a20'},minimal:{wall:'#ffffff',liv:'conc',bed:'wood',hall:'conc',sofa:'#b9bcc2',wood:'#c9b79c',dark:'#555555'}};
-const AREA_EST={master:20,bed:14,bath:5,living:25,guest:20,kitchen:12,garage:20,store:6,laundry:5};
-function reqEstimate(q){const n=v=>Math.max(0,+v||0);const bd=n(q.bd),ms=Math.min(n(q.ms),bd);let a=ms*AREA_EST.master+(bd-ms)*AREA_EST.bed+n(q.bt)*AREA_EST.bath+AREA_EST.kitchen;if(q.lv)a+=AREA_EST.living;if(q.gs)a+=AREA_EST.guest;if(q.gr)a+=AREA_EST.garage;if(q.st)a+=AREA_EST.store;if(q.ld)a+=AREA_EST.laundry;return a*1.15}
+const AREA_EST={master:20,bed:14,bath:5,living:25,guest:20,kitchen:12,garage:20,store:6,laundry:5,majlis:35,dining:15,maid:9};
+function reqEstimate(q){const n=v=>Math.max(0,+v||0);const bd=n(q.bd),ms=Math.min(n(q.ms),bd);let a=ms*AREA_EST.master+(bd-ms)*AREA_EST.bed+n(q.bt)*AREA_EST.bath+AREA_EST.kitchen;if(q.lv)a+=AREA_EST.living;if(q.gs)a+=AREA_EST.guest;if(q.gr)a+=AREA_EST.garage;if(q.st)a+=AREA_EST.store;if(q.ld)a+=AREA_EST.laundry;if(q.mj)a+=AREA_EST.majlis;if(q.dn)a+=AREA_EST.dining;if(q.md)a+=AREA_EST.maid;if(q.dr)a+=AREA_EST.maid;return a*1.15}
 function reqText(q,blank){const L=[`*${blank?'نموذج متطلبات التصميم':'متطلبات التصميم'} — ${TX().t}*`];for(const f of REQF){if(f[0]==='g'){L.push('','*'+f[1].replace(/^\S+\s/,'')+'*');continue}const [k,l,t,,opts]=f;let v=q?q[k]:'';if(blank){L.push(`${l}: ${t==='c'?'نعم / لا':t==='s'?opts.map(o=>o[1]).join(' / '):'.........'}`);continue}if(t==='c')v=v?'نعم':'لا';else if(t==='s')v=(opts.find(o=>o[0]==v)||[,''])[1];if(v===''||v==null)continue;L.push(`${l}: ${v}`)}if(blank)L.push('','يرجى ملء البيانات وإعادة إرسالها. شكراً لكم');return L.join('\n')}
 function reqPanel(){if(!D)return;const r=reqVals();let h='',open=false;
  for(const f of REQF){if(f[0]==='g'){if(open)h+='</div></div>';h+=`<div class="card"><h3>${f[1]}</h3><div class="rgrid">`;open=true;continue}const [k,l,t,,opts]=f,v=r[k];
@@ -831,7 +848,7 @@ function reqPanel(){if(!D)return;const r=reqVals();let h='',open=false;
 
 /* ======= إنشاء مخطط من المتطلبات ======= */
 function interleave(beds,baths){const r=[];beds.forEach((b,i)=>{r.push(b);if(i%2===1&&baths.length)r.push(baths.shift())});return r.concat(baths.splice(0))}
-function matFor(k,S){return{bath:'tile',kitchen:'cer',garage:'conc',store:'cer',laundry:'tile',living:S.liv,guest:S.liv,bed:S.bed,master:S.bed}[k]||'tile'}
+function matFor(k,S){return{bath:'tile',kitchen:'cer',garage:'conc',store:'cer',laundry:'tile',maid:'tile',majlis:S.liv,dining:S.liv,living:S.liv,guest:S.liv,bed:S.bed,master:S.bed}[k]||'tile'}
 function genPlan(q){const n=v=>Math.max(0,Math.round(+v||0));const S=STY[q.sty]||STY.modern;
  const FW=Math.round(Math.max(5,(+q.pw||10)-2*(+q.ss||0))*10)*10,FL=Math.round(Math.max(5,(+q.pl||20)-(+q.sf||0)-(+q.sb||0))*10)*10;const trans=FL>FW*1.15,W=trans?FL:FW,L=trans?FW:FL;
  const nF=clamp(n(q.fl)||1,1,4),FH=Math.round((+q.fh||3)*100);
@@ -839,20 +856,20 @@ function genPlan(q){const n=v=>Math.max(0,Math.round(+v||0));const S=STY[q.sty]|
  const beds=[];for(let i=0;i<bd;i++)beds.push(i<ms?R('master',ms>1?'غرفة ماستر '+AR(i+1):'غرفة نوم ماستر',1.45):R('bed','غرفة نوم '+AR(i-ms+1),1.1));
  const baths=[];for(let i=0;i<bt;i++)baths.push(R('bath','حمام'+(bt>1?' '+AR(i+1):''),.6));
  const fl=[];for(let i=0;i<nF;i++)fl.push({front:[],back:[]});const g=fl[0];
- if(q.gr)g.front.push(R('garage','الكراج',1.65));if(q.gs)g.front.push(R('guest','غرفة الضيوف',1.3));if(q.lv)g.front.push(R('living','الصالة',1.6));g.front.push(R('kitchen','المطبخ',1.1));
+ if(q.gr)g.front.push(R('garage','الكراج',1.65));if(q.gs)g.front.push(R('guest','غرفة الضيوف',1.3));if(q.lv)g.front.push(R('living','الصالة',1.6));if(q.dn)g.front.push(R('dining','غرفة الطعام',1.2));g.front.push(R('kitchen','المطبخ',1.1));
  const gb=nF===1?bd:Math.max(0,bd-(nF-1)*3);const bq=beds.slice(),groundBeds=bq.splice(bq.length-gb,gb),bathQ=baths.slice();
  if(nF===1)g.back.push(...interleave(groundBeds,bathQ));
  else{if(bathQ.length)g.back.push(bathQ.shift());g.back.push(...groundBeds);
   for(let i=1;i<nF;i++){const left=nF-i,fb=bq.splice(0,Math.ceil(bq.length/left)),bb=bathQ.splice(0,Math.ceil(bathQ.length/left));const lst=(fb.length>=2?[R('living','صالة عائلية',1.4)]:[]).concat(interleave(fb,bb));const half=Math.ceil(lst.length/2);fl[i].front=lst.slice(0,half);fl[i].back=lst.slice(half);if(!fl[i].front.length)fl[i].front.push(R('living','صالة',1));if(!fl[i].back.length)fl[i].back.push(R('living','تراس / صالة',1))}}
- if(q.st)g.back.push(R('store','مخزن',.55));if(q.ld)g.back.push(R('laundry','غرفة غسيل',.55));if(!g.back.length)g.back.push(R('store','مخزن',.6));
+ if(q.st)g.back.push(R('store','مخزن',.55));if(q.ld)g.back.push(R('laundry','غرفة غسيل',.55));if(q.md)g.back.push(R('maid','غرفة خادمة',.85));if(q.dr)g.back.push(R('maid','غرفة سائق',.85));if(q.mj){const mj=R('majlis','مجلس الرجال',1.8),gbt=R('bath','حمام ضيوف',.55);if(trans){g.back.unshift(gbt);g.back.unshift(mj)}else{g.front.unshift(mj);g.back.unshift(gbt)}}if(!g.back.length)g.back.push(R('store','مخزن',.6));
  // موازنة الصفّين
- for(const r of fl){while(r.back.length>r.front.length+2){const i=r.back.findIndex(x=>x.k==='bath'||x.k==='store'||x.k==='laundry');r.front.push(r.back.splice(i>=0?i:r.back.length-1,1)[0])}}
- const corr=nF>1?150:130,fd=Math.round((L-corr)*.5/10)*10,yA=fd,yB=fd+corr;
+ for(const r of fl){while(r.back.length>r.front.length+2){let i=-1;for(let j=r.back.length-1;j>=0;j--)if(['store','laundry','maid','bath'].includes(r.back[j].k)&&r.back[j].n!=='حمام ضيوف'){i=j;break}r.front.push(r.back.splice(i>=0?i:r.back.length-1,1)[0])}}
+ const single=L<760,corr=single?110:(nF>1?150:130),fd=single?L-corr:Math.round((L-corr)*.5/10)*10,yA=fd,yB=fd+corr;
  const d=newData();d.floors=[];d.wh=FH;d.wt=20;
- fl.forEach((rows,fi)=>{const f=newFloor(fi===0?'الطابق الأرضي':'الطابق '+AR(fi+1));f.h=FH;d.floors.push(f);
+ fl.forEach((rows,fi)=>{if(single){rows.front=rows.front.concat(rows.back);rows.back=[]}const f=newFloor(fi===0?'الطابق الأرضي':'الطابق '+AR(fi+1));f.h=FH;d.floors.push(f);
   const wall=(x1,y1,x2,y2,t=20)=>{const w={id:uid(),x1,y1,x2,y2,t,h:FH,c:S.wall};f.walls.push(w);return w};
   const op=(w,t,at,ex)=>f.ops.push(Object.assign({id:uid(),t,w:w.id,at:r1(at),fh:0,fs:1},ODEF[t],ex||{}));
-  const o1=wall(0,0,W,0,25),o2=wall(W,0,W,L,25),o3=wall(W,L,0,L,25),o4=wall(0,L,0,0,25),wA=wall(0,yA,W,yA),wB=wall(0,yB,W,yB);
+  const o1=wall(0,0,W,0,25),o2=wall(W,0,W,L,25),o3=wall(W,L,0,L,25),o4=wall(0,L,0,0,25),wA=wall(0,yA,W,yA),wB=single?o3:wall(0,yB,W,yB);
   f.rooms.push({id:uid(),n:'الممر',m:S.hall,c:'',pts:[[0,yA],[W,yA],[W,yB],[0,yB]]});
   const entK=['living','guest','kitchen'].find(k=>rows.front.some(r=>r.k===k));const layRow=(list,top)=>{const y0=top?0:yB,y1=top?yA:L,tw=list.reduce((s,r)=>s+r.w,0);let x=0;
    list.forEach((r,i)=>{const w2=i===list.length-1?W-x:Math.round(W*r.w/tw/10)*10,x0=x,x1=x+w2,cx=(x0+x1)/2;x=x1;
@@ -861,17 +878,17 @@ function genPlan(q){const n=v=>Math.max(0,Math.round(+v||0));const S=STY[q.sty]|
     const dw=Math.max(60,Math.min(r.k==='bath'?80:90,w2-40));op(top?wA:wB,r.k==='living'&&w2>=220?'door2':'door',cx,{wd:r.k==='living'&&w2>=220?160:dw,fs:top?-1:1});
     const ow=top?o1:o3,oat=top?cx:W-cx;
     if(r.k==='garage'&&top&&!trans)op(ow,'door2',oat,{wd:Math.min(260,w2-40),h:230});
-    else if(fi===0&&!trans&&top&&r.k===entK)op(ow,'door',oat,{wd:110,fs:1});
+    else if(fi===0&&!trans&&top&&(r.k===entK||r.k==='majlis')){op(ow,'door',x1-80,{wd:100,fs:1,fh:1});op(ow,'window',cx-40,{wd:Math.max(60,Math.min(120,w2-260))})}
     else if(r.k==='bath')op(ow,'window',oat,{wd:60,h:60,sl:150});
     else if(r.k==='store')op(ow,'window',oat,{wd:60,h:50,sl:170});
     else op(ow,'window',oat,{wd:Math.min(r.k==='living'||r.k==='guest'?180:120,w2-60),sl:r.k==='kitchen'?110:90});
     furnish(f,r.k,x0,y0,x1,y1,top,S,trans)})};
   layRow(rows.front,true);layRow(rows.back,false);
   if(fi===0&&trans)op(o4,'door',L-(yA+corr/2),{wd:110});else op(o4,'window',L-(yA+corr/2),{wd:80});
-  if(trans){const gr=f.rooms.find(r=>r.n==='الكراج');if(gr&&fi===0){const bx=roomBox(gr);op(o4,'door2',L-(bx.y0+bx.y1)/2,{wd:Math.min(260,bx.h-40),h:230})}}
+  if(trans&&fi===0){const mjr=f.rooms.find(r=>r.n==='مجلس الرجال');if(mjr){const bx=roomBox(mjr);op(o4,'door',L-(bx.y0+bx.y1)/2,{wd:110})}}if(trans){const gr=f.rooms.find(r=>r.n==='الكراج');if(gr&&fi===0){const bx=roomBox(gr);op(o4,'door2',L-(bx.y0+bx.y1)/2,{wd:Math.min(260,bx.h-40),h:230})}}
   if(nF>1)f.items.push(Object.assign(newItem('stairs',W-12.5-160,yA+corr/2,90),{w:Math.min(110,corr-30),d:300,h:FH}));else op(o2,'window',yA+corr/2,{wd:80});
   if(trans)reflectFloor(f);
-  if(fi===0){if(((+q.sf||0)+(+q.sb||0)+(+q.ss||0))>0){const ss=(+q.ss||0)*100,sf=(+q.sf||0)*100,sb=(+q.sb||0)*100;f.rooms.unshift({id:uid(),n:'الأرض',m:'grass',c:'',plot:1,pts:[[-ss,-sf],[FW+ss,-sf],[FW+ss,FL+sb],[-ss,FL+sb]]})}f.dims.push({id:uid(),x1:0,y1:-80,x2:FW,y2:-80},{id:uid(),x1:-80,y1:0,x2:-80,y2:FL});f.labels.push({id:uid(),x:FW/2,y:-160,tx:'↑ الواجهة الأمامية (الشارع)',sz:28})}
+  if(fi===0){if(((+q.sf||0)+(+q.sb||0)+(+q.ss||0))>0){const ss=(+q.ss||0)*100,sf=(+q.sf||0)*100,sb=(+q.sb||0)*100;f.rooms.unshift({id:uid(),n:'الأرض',m:'grass',c:'',plot:1,pts:[[-ss,-sf],[FW+ss,-sf],[FW+ss,FL+sb],[-ss,FL+sb]]})}f.dims.push({id:uid(),x1:0,y1:-80,x2:FW,y2:-80},{id:uid(),x1:-80,y1:0,x2:-80,y2:FL});f.labels.push({id:uid(),x:FW/2,y:-160,tx:'↑ الواجهة الأمامية (الشارع)',sz:28});const sfc=(+q.sf||0)*100;if(q.pk&&sfc>=480){const n=Math.min(4,Math.floor(FW/270));for(let i=0;i<n;i++)f.items.push(newItem('car',r1(FW/(n)*(i+.5)),r1(-sfc/2),0))}}
  });
  return{floors:d.floors,wh:FH}}
 function reflectFloor(f){f.walls.forEach(w=>{[w.x1,w.y1,w.x2,w.y2]=[w.y1,w.x1,w.y2,w.x2]});f.ops.forEach(o=>o.fs=-(o.fs||1));f.rooms.forEach(r=>r.pts=r.pts.map(p=>[p[1],p[0]]));f.items.forEach(i=>{[i.x,i.y]=[i.y,i.x];i.r=((270-i.r)%360+360)%360})}
@@ -885,6 +902,9 @@ function furnish(f,k,x0,y0,x1,y1,top,S,trans){const m=14,W=x1-x0,Hh=y1-y0,cx=(x0
  else if(k==='guest'){if(W<260||Hh<260)return;I('sofa3',cx,yO(90),ro,{c:S.sofa,w:Math.min(220,W-120)});I('arm',x0+m+45,cy,270,{c:S.sofa});if(W>=330)I('arm',x1-m-45,cy,90,{c:S.sofa});I('ctable',cx,cy,0,{c:S.wood})}
  else if(k==='garage'){const a=W>=480&&Hh>=230,b=W>=230&&Hh>=480;if(trans?a:!b&&a)I('car',cx,cy,90);else if(b)I('car',cx,cy,0)}
  else if(k==='store'){if(W>=120)I('shelf',cx,yO(35),ro)}
+ else if(k==='majlis'){if(W<250||Hh<250)return;const gap=(a,b,c,r)=>a<c+r&&b>c-r;for(let xs=x0+m;xs+200<=x1-m;xs+=200){if(!trans&&top&&gap(xs,xs+200,x1-80,75))continue;I('arabseat',xs+100,yO(75),ro,{c:S.sofa})}const sd=Hh-2*m-75-20;for(let ys=0;ys+200<=sd;ys+=200){const yy=top?y0+m+75+10+ys+100:y1-m-75-10-ys-100;if(!(trans&&gap(yy-100,yy+100,cy,75)))I('arabseat',x0+m+37,yy,270,{c:S.sofa});I('arabseat',x1-m-37,yy,90,{c:S.sofa})}I('ctable',cx,cy,0,{c:S.wood});I('rug',cx,cy,90,{w:Math.min(200,Hh*.4),d:Math.min(300,W*.5)})}
+ else if(k==='dining'){if(W>=250&&Hh>=230)I('dset',cx,cy,W>=Hh?0:90,{c:S.wood});else if(W>=180)I('dtable',cx,cy,0,{c:S.wood})}
+ else if(k==='maid'){if(W>=130&&Hh>=230){I('bed1',x0+m+50,yO(200),ro,{w:90});if(W>=230)I('ward',x1-m-30,cy,90,{w:Math.min(120,Hh-120)})}}
  else if(k==='laundry'){I('wm',x0+m+30,yO(60),ro);if(W>=160)I('wm',x0+m+95,yO(60),ro)}}
 
 /* ======= تعديل المقاسات والمساحات ======= */
@@ -909,7 +929,7 @@ function applyDim(k,v){if(!(v>0))return;const o=getSel();
 
 function reqPrint(){const q=D.req;if(!q||!Object.keys(q).length)return'';let rows='';for(const f of REQF){if(f[0]==='g'){rows+=`<tr><th colspan="2" style="background:#eee;text-align:right">${f[1]}</th></tr>`;continue}const [k,l,t,,opts]=f;let v=q[k];if(t==='c')v=v?'نعم':'لا';else if(t==='s')v=(opts.find(o=>o[0]==v)||[,''])[1];if(v===''||v==null)continue;rows+=`<tr><td style="width:40%">${l}</td><td style="text-align:right;white-space:pre-wrap">${AR(esc(v))}</td></tr>`}return`<div class="prPage">${isTrial()?'<div class="wm">نسخة تجريبية</div>':''}<div style="display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:8px"><b style="font-size:19px">${esc(civ('org')||TX().t)}</b><b>بيانات العميل ومتطلبات التصميم</b></div><table>${rows}</table><div class="prCredL" style="text-align:center;font-size:11px;color:#555;margin-top:16px;border-top:1px solid #ccc;padding-top:6px">© جميع الحقوق محفوظة${DZ().n?' للمصمم: '+esc(DZ().n):''}</div></div>`}
 /* ======= الطباعة والتصدير ======= */
-function planCanvas(f,maxW=1100,k=2){const b=bounds(f),pad=70;const bw=b.x1-b.x0+pad*2,bh=b.y1-b.y0+pad*2;const s=Math.min(maxW/bw,maxW*1.2/bh);const W=Math.round(bw*s),Hh=Math.round(bh*s)+34;const c=document.createElement('canvas');c.width=W*k;c.height=Hh*k;const ctx=c.getContext('2d');ctx.setTransform(k,0,0,k,0,0);renderPlan(ctx,W,Hh,{s,ox:(pad-b.x0)*s,oy:(pad-b.y0)*s},{print:true,floor:f});if(isTrial()){ctx.setTransform(1,0,0,1,0,0);wmark(ctx,c.width,c.height)}return c}
+function planCanvas(f,maxW=1100,k=2,thumb){const b=bounds(f),pad=70;const bw=b.x1-b.x0+pad*2,bh=b.y1-b.y0+pad*2;const s=Math.min(maxW/bw,maxW*1.2/bh);const W=Math.round(bw*s),Hh=Math.round(bh*s)+34;const c=document.createElement('canvas');c.width=W*k;c.height=Hh*k;const ctx=c.getContext('2d');ctx.setTransform(k,0,0,k,0,0);renderPlan(ctx,W,Hh,{s,ox:(pad-b.x0)*s,oy:(pad-b.y0)*s},{print:true,floor:f,thumb});if(isTrial()&&!thumb){ctx.setTransform(1,0,0,1,0,0);wmark(ctx,c.width,c.height)}return c}
 function exportPNG(){if(!D)return;planCanvas(F(),1400).toBlob(b=>dl((cur.n||'مخطط')+' - '+(F().n||'')+'.png',b));toast('⬇ جارٍ تنزيل صورة المخطط')}
 function printView(){if(!D)return;persistNow();const dt=AR(new Date().toLocaleDateString('en-GB'));const org=civ('org'),addr=civ('addr'),mgr=civ('mgr'),role=civ('role');let h='';
  D.floors.forEach((f,i)=>{if(!f.walls.length&&!f.rooms.length&&!f.items.length)return;const url=planCanvas(f).toDataURL('image/png');let tot=0;const rows=f.rooms.filter(r=>!r.plot).map((r,j)=>{const a=Math.abs(polyArea(r.pts));tot+=a;return`<tr><td>${AR(j+1)}</td><td>${esc(r.n)}</td><td>${esc((FLOORS[r.m]||{}).n||'')}</td><td>${fmtA(a,1)}</td></tr>`}).join('');
@@ -918,9 +938,227 @@ function printView(){if(!D)return;persistNow();const dt=AR(new Date().toLocaleDa
 $('#prCred').onchange=()=>$$('.prCredL').forEach(e=>e.style.display=$('#prCred').checked?'':'none');
 $('#prP').onclick=()=>window.print();$('#prD').onclick=exportPNG;$('#prX').onclick=()=>$('#prv').classList.remove('show');
 
+
+/* ================= الإضافات: رموز الكهرباء والصحيات ================= */
+const VIEW=LIC.m===2;
+let msel=[],marq=null,calPts=null,ceil3=false;
+const PATID={none:0,grid:1,wood:2,marble:3,dots:4,stone:5};
+const SB='#1d4ed8',SP='#0e7490';
+const symS=(c,s,col)=>{c.strokeStyle=col;c.fillStyle=col;c.lineWidth=1.6/s};
+const symT=(c,t,x,y,sz,col)=>{c.save();c.fillStyle=col;c.font=`bold ${sz}px Arial`;c.textAlign='center';c.textBaseline='middle';c.fillText(t,x,y);c.restore()};
+const SYM={
+ sw:(c,w,d,s)=>{symS(c,s,SB);c.beginPath();c.arc(w/2,d/2,Math.min(w,d)*.3,0,7);c.fill();c.beginPath();c.moveTo(w/2,d/2);c.lineTo(w*.95,-d*.25);c.stroke()},
+ sock:(c,w,d,s)=>{symS(c,s,SB);c.beginPath();c.arc(w/2,d*.75,w*.38,Math.PI,0);c.closePath();c.stroke();c.beginPath();c.moveTo(w*.38,d*.3);c.lineTo(w*.38,d*.55);c.moveTo(w*.62,d*.3);c.lineTo(w*.62,d*.55);c.stroke()},
+ light:(c,w,d,s)=>{symS(c,s,SB);const r=Math.min(w,d)*.45;c.beginPath();c.arc(w/2,d/2,r,0,7);c.stroke();c.beginPath();c.moveTo(w/2-r*.7,d/2-r*.7);c.lineTo(w/2+r*.7,d/2+r*.7);c.moveTo(w/2+r*.7,d/2-r*.7);c.lineTo(w/2-r*.7,d/2+r*.7);c.stroke()},
+ spot:(c,w,d,s)=>{symS(c,s,SB);c.beginPath();c.arc(w/2,d/2,Math.min(w,d)*.4,0,7);c.stroke();c.beginPath();c.arc(w/2,d/2,Math.min(w,d)*.18,0,7);c.fill()},
+ wl:(c,w,d,s)=>{symS(c,s,SB);c.beginPath();c.arc(w/2,0,w*.35,0,Math.PI);c.closePath();c.fill();for(const a of [.5,1.5707,2.64]){c.beginPath();c.moveTo(w/2+Math.cos(a)*w*.42,Math.sin(a)*w*.42);c.lineTo(w/2+Math.cos(a)*w*.55,Math.sin(a)*w*.55);c.stroke()}},
+ db:(c,w,d,s)=>{symS(c,s,SB);c.strokeRect(0,0,w,d);c.beginPath();c.moveTo(0,0);c.lineTo(w,0);c.lineTo(w,d);c.closePath();c.fill()},
+ ac:(c,w,d,s)=>{symS(c,s,SB);c.strokeRect(0,0,w,d);symT(c,'AC',w/2,d/2,Math.min(w*.4,d*.8),SB)},
+ tvp:(c,w,d,s)=>{symS(c,s,SB);c.strokeRect(0,0,w,d);symT(c,'TV',w/2,d/2,Math.min(w*.42,d*.8),SB)},
+ net:(c,w,d,s)=>{symS(c,s,SB);c.strokeRect(0,0,w,d);symT(c,'NET',w/2,d/2,Math.min(w*.3,d*.7),SB)},
+ fan:(c,w,d,s)=>{symS(c,s,SB);c.beginPath();c.arc(w/2,d/2,w*.08,0,7);c.fill();for(let i=0;i<3;i++){c.save();c.translate(w/2,d/2);c.rotate(i*2.094);c.beginPath();c.ellipse(0,-w*.27,w*.07,w*.22,0,0,7);c.stroke();c.restore()}},
+ drain:(c,w,d,s)=>{symS(c,s,SP);c.beginPath();c.arc(w/2,d/2,w*.45,0,7);c.stroke();c.beginPath();c.moveTo(w*.2,d/2);c.lineTo(w*.8,d/2);c.moveTo(w/2,d*.2);c.lineTo(w/2,d*.8);c.stroke()},
+ heat:(c,w,d,s)=>{symS(c,s,SP);c.beginPath();c.arc(w/2,d/2,w*.45,0,7);c.stroke();symT(c,'H',w/2,d/2,w*.5,SP)},
+ tank:(c,w,d,s)=>{symS(c,s,SP);c.beginPath();c.arc(w/2,d/2,w*.48,0,7);c.stroke();c.beginPath();c.arc(w/2,d/2,w*.38,0,7);c.stroke();symT(c,'خزان',w/2,d/2,w*.2,SP)},
+ mh:(c,w,d,s)=>{symS(c,s,SP);c.strokeRect(0,0,w,d);c.beginPath();c.moveTo(0,0);c.lineTo(w,d);c.moveTo(w,0);c.lineTo(0,d);c.stroke()},
+ wp:(c,w,d,s)=>{symS(c,s,SP);c.beginPath();c.arc(w/2,d/2,w*.45,0,7);c.stroke();symT(c,'W',w/2,d/2,w*.55,SP)}
+};
+const BX=(w,d,h)=>[B(0,0,0,w,d,h,0)];
+Object.assign(DEF,{
+ arabseat:{n:'جلسة عربية',cat:'liv',w:200,d:75,h:45,c:'#9b3d2e',c2:'#d9b26f',p:(w,d,h)=>[B(0,0,0,w,d,12,1),B(0,8,12,w,d,22,0),B(0,0,12,w,10,h,0)]},
+ sw:{n:'مفتاح إنارة',cat:'elec',w:12,d:6,h:10,z:120,c:'#f5f5f5',sym:SYM.sw,p:BX},
+ sock:{n:'بريز (مقبس)',cat:'elec',w:12,d:6,h:10,z:35,c:'#f5f5f5',sym:SYM.sock,p:BX},
+ light:{n:'إنارة سقفية',cat:'elec',w:40,d:40,h:8,z:285,c:'#fff6c8',emit:1,sym:SYM.light,p:(w,d,h)=>[B(0,0,0,w,d,h,0,'c')]},
+ spot:{n:'سبوت لايت',cat:'elec',w:12,d:12,h:3,z:295,c:'#fff6c8',emit:1,sym:SYM.spot,p:(w,d,h)=>[B(0,0,0,w,d,h,0,'c')]},
+ wl:{n:'إنارة جدارية',cat:'elec',w:25,d:12,h:20,z:190,c:'#fff6c8',emit:1,sym:SYM.wl,p:BX},
+ fan:{n:'مروحة سقفية',cat:'elec',w:120,d:120,h:30,z:260,c:'#7a5a40',sym:SYM.fan,p:(w,d,h)=>[B(w*.45,d*.45,0,w*.55,d*.55,h,0,'c'),B(0,d*.47,h*.1,w,d*.53,h*.2,0),B(w*.47,0,h*.1,w*.53,d,h*.2,0)]},
+ db:{n:'لوحة توزيع كهرباء',cat:'elec',w:50,d:12,h:70,z:130,c:'#9aa2ab',sym:SYM.db,p:BX},
+ acp:{n:'نقطة مكيف',cat:'elec',w:25,d:8,h:15,z:230,c:'#f5f5f5',sym:SYM.ac,p:BX},
+ tvp:{n:'نقطة تلفزيون',cat:'elec',w:15,d:6,h:10,z:40,c:'#f5f5f5',sym:SYM.tvp,p:BX},
+ net:{n:'نقطة إنترنت',cat:'elec',w:15,d:6,h:10,z:40,c:'#f5f5f5',sym:SYM.net,p:BX},
+ drain:{n:'بالوعة أرضية',cat:'plumb',w:15,d:15,h:1,c:'#9aa2ab',sym:SYM.drain,p:(w,d,h)=>[B(0,0,0,w,d,1,0,'c')]},
+ heat:{n:'سخان ماء',cat:'plumb',w:50,d:50,h:90,z:120,c:'#eeeeee',sym:SYM.heat,p:(w,d,h)=>[B(0,0,0,w,d,h,0,'c')]},
+ tank:{n:'خزان ماء',cat:'plumb',w:120,d:120,h:150,c:'#3a86c8',sym:SYM.tank,p:(w,d,h)=>[B(0,0,0,w,d,h,0,'c')]},
+ mh:{n:'منهول (غرفة تفتيش)',cat:'plumb',w:60,d:60,h:2,c:'#666666',sym:SYM.mh,p:BX},
+ wp:{n:'نقطة ماء',cat:'plumb',w:12,d:12,h:6,z:60,c:'#3a86c8',sym:SYM.wp,p:BX}
+});
+Object.assign(CATS,{elec:'💡 الكهرباء',plumb:'🚰 الصحيات'});
+function itemVis(it){const c=(DEF[it.t]||{}).cat,L=(D&&D.lay)||{};if(c==='elec')return L.el!==false;if(c==='plumb')return L.pl!==false;return true}
+function layerProps(){const L=D.lay||{};return`<hr class="sep"><div class="pt">🗂 الطبقات</div><label class="ck"><input type="checkbox" data-k="layEl" ${L.el!==false?'checked':''}> 💡 الكهرباء</label><label class="ck"><input type="checkbox" data-k="layPl" ${L.pl!==false?'checked':''}> 🚰 الصحيات</label>`}
+
+/* ================= صورة خلفية للتتبّع ================= */
+const bgC=new Map();
+function bgImg(src){let i=bgC.get(src);if(!i){i=new Image();i.onload=()=>render();i.src=src;bgC.set(src,i)}return i}
+function drawBg(ctx,f,v,pr){if(!f.bg||pr)return;const im=bgImg(f.bg.src);if(!im.complete||!im.naturalWidth)return;ctx.save();ctx.globalAlpha=f.bg.op==null?.5:f.bg.op;const w=f.bg.w*v.s,h=w*im.naturalHeight/im.naturalWidth;ctx.drawImage(im,f.bg.x*v.s+v.ox,f.bg.y*v.s+v.oy,w,h);ctx.restore()}
+function bgProps(f){return`<hr class="sep"><div class="pt">🖼 صورة خلفية للتتبّع</div>${f.bg?`<label class="f">الشفافية<input type="range" min="0.05" max="1" step="0.05" data-k="bgOp" value="${f.bg.op==null?.5:f.bg.op}" style="width:100%"></label>${fN('عرض الصورة الحقيقي (سم)','bgW',f.bg.w,10)}<div class="row">${pAct('bgCal','📏 معايرة')}${pAct('bgMove','✋ تحريك')}</div><div class="row" style="margin-top:6px">${pAct('bgDel','🗑 حذف الصورة','dan')}</div>`:`${pAct('bgUp','📂 إضافة صورة مخطط')}<div class="mu" style="margin-top:4px">ضع صورة مخطط قديم أو ممسوح ضوئياً وارسم فوقه، ثم اضبط مقياسها بطول معروف.</div>`}`}
+function setBgLay(k,v){const f=F();if(k==='bgOp'&&f.bg)f.bg.op=parseFloat(v);else if(k==='bgW'&&f.bg&&v>0)f.bg.w=v;else if(k==='layEl'||k==='layPl'){D.lay=D.lay||{};D.lay[k==='layEl'?'el':'pl']=v;dirty3=true}render()}
+const imgIn=document.createElement('input');imgIn.type='file';imgIn.accept='image/*';
+imgIn.onchange=()=>{const file=imgIn.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const mx=1800,k=Math.min(1,mx/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);const src=c.toDataURL('image/jpeg',.75);const b=bounds(F());F().bg={src,x:b.empty?0:b.x0,y:b.empty?0:b.y0,w:1000,op:.5};commit();renderProps();render();toast('أُضيفت الصورة. اضغط «معايرة» وحدد طولاً معروفاً لضبط مقياسها')};im.src=r.result};r.readAsDataURL(file)};
+function calHint(){const h=$('#hint');h.classList.remove('hide');h.innerHTML='<span>اكتب الطول الحقيقي بين النقطتين</span><input id="calIn" class="inp" type="number" placeholder="الطول (سم) ↵"><button class="btn sm" data-h="cal">✓ تطبيق</button><button class="btn sm sec" data-h="x">✕</button>';setTimeout(()=>{const i=$('#calIn');if(i)i.focus()},30)}
+function applyCal(v){v=parseFloat(v);const f=F();if(!(v>0)||!calPts||calPts.length<2||!f.bg)return;const[a,b]=calPts,d=Math.hypot(b.x-a.x,b.y-a.y);if(d<1)return;const k=v/d;f.bg.w*=k;f.bg.x=a.x+(f.bg.x-a.x)*k;f.bg.y=a.y+(f.bg.y-a.y)*k;calPts=null;commit();setTool('select');toast('✅ ضُبط مقياس الصورة');renderProps()}
+$('#hint').addEventListener('click',e=>{if(e.target.closest('[data-h="cal"]'))applyCal($('#calIn').value)});
+$('#hint').addEventListener('keydown',e=>{if(e.target.id==='calIn'&&e.key==='Enter'){applyCal(e.target.value);e.preventDefault()}});
+
+/* ================= التحديد المتعدد وكشف الغرف ================= */
+const objOf=m=>F()[ARR[m.k]].find(o=>o.id===m.id);
+function startG(p,hh,tog){drag={t:'gmove',p0:p,orig:msel.map(m=>JSON.parse(JSON.stringify(objOf(m)||{}))),moved:false,tog:tog?hh:null}}
+function pdExtra(e,p){
+ if(VIEW){drag={t:'pan',sx:p.sx,sy:p.sy,ox:view.ox,oy:view.oy};return true}
+ if(tool==='cal'){if(!F().bg){setTool('select');return true}if(!calPts||calPts.length>=2)calPts=[{x:p.x,y:p.y}];else{calPts.push({x:p.x,y:p.y});calHint()}render();return true}
+ if(tool==='bgm'){const f=F();if(f.bg)drag={t:'bgm',p0:p,ox:f.bg.x,oy:f.bg.y};return true}
+ if(tool==='auto'){const r=detectRoom(p);if(r==='open')toast('المنطقة غير مغلقة بالجدران');else if(!r)toast('انقر داخل غرفة محاطة بجدران');else{const rm={id:uid(),n:'غرفة',m:'tile',c:'',pts:r};F().rooms.unshift(rm);sel={k:'room',id:rm.id};msel=[];commit();setTool('select');toast('✅ اكتُشفت الغرفة: '+fmtA(Math.abs(polyArea(r))))}return true}
+ if(tool==='msel'||tool==='select'){const hh=hit(p),inM=!!hh&&msel.some(m=>m.k===hh.k&&m.id===hh.id);
+  if(tool==='select'&&!e.shiftKey){if(inM&&msel.length>1){startG(p,hh,false);return true}if(msel.length){msel=[]}return false}
+  if(sel&&!msel.length)msel=[{k:sel.k,id:sel.id}];sel=null;
+  if(hh&&!(hh.k==='room'&&!inM)){if(!inM){msel.push(hh);startG(p,hh,false)}else startG(p,hh,true)}else{if(!e.shiftKey&&tool==='msel'&&!hh)msel=[];marq={a:{x:p.x,y:p.y},b:{x:p.x,y:p.y},hit:hh};drag={t:'marq'}}
+  renderProps();render();return true}
+ return false}
+function moveObj(o,g,dx,dy){if('x1' in g){o.x1=g.x1+dx;o.y1=g.y1+dy;o.x2=g.x2+dx;o.y2=g.y2+dy}else if(g.pts)o.pts=g.pts.map(q=>[q[0]+dx,q[1]+dy]);else if('x' in g){o.x=g.x+dx;o.y=g.y+dy}}
+function pmExtra(p,free){if(!drag)return false;
+ if(drag.t==='marq'){marq.b={x:p.x,y:p.y};render();return true}
+ if(drag.t==='bgm'){const f=F();if(f.bg){f.bg.x=drag.ox+p.x-drag.p0.x;f.bg.y=drag.oy+p.y-drag.p0.y}render();return true}
+ if(drag.t==='gmove'){const dx=p.x-drag.p0.x,dy=p.y-drag.p0.y;if(!drag.moved&&Math.hypot(dx,dy)*view.s<3)return true;drag.moved=true;const ddx=snapG(dx,free),ddy=snapG(dy,free);msel.forEach((m,i)=>{const o=objOf(m);if(o)moveObj(o,drag.orig[i],ddx,ddy)});render();return true}
+ return false}
+function puExtra(d){
+ if(d.t==='marq'&&marq){const a=marq.a,b=marq.b,x0=Math.min(a.x,b.x),x1=Math.max(a.x,b.x),y0=Math.min(a.y,b.y),y1=Math.max(a.y,b.y),mh=marq.hit;marq=null;if(Math.hypot(b.x-a.x,b.y-a.y)*view.s<5){if(mh&&!msel.some(m=>m.id===mh.id))msel.push(mh);if(msel.length===1){sel=msel[0];msel=[]}renderProps();render();return true}const In=(x,y)=>x>=x0&&x<=x1&&y>=y0&&y<=y1,f=F(),add=(k,o)=>{if(!msel.some(m=>m.id===o.id))msel.push({k,id:o.id})};
+  f.walls.forEach(w=>{if(In(w.x1,w.y1)&&In(w.x2,w.y2))add('wall',w)});f.rooms.forEach(r=>{if(!r.plot&&r.pts.every(q=>In(q[0],q[1])))add('room',r)});f.items.forEach(i=>{if(itemVis(i)&&In(i.x,i.y))add('item',i)});f.labels.forEach(l=>{if(In(l.x,l.y))add('label',l)});f.dims.forEach(q=>{if(In(q.x1,q.y1)&&In(q.x2,q.y2))add('dim',q)});
+  if(msel.length===1){sel=msel[0];msel=[]}renderProps();render();if(msel.length>1)toast('حُدد '+msel.length+' عنصراً');return true}
+ if(d.t==='bgm'){commit();return true}
+ if(d.t==='gmove'){if(!d.moved&&d.tog){msel=msel.filter(m=>m.id!==d.tog.id);if(msel.length===1){sel=msel[0];msel=[]}}else if(d.moved)commit();renderProps();render();return true}
+ return false}
+function drawMulti(ctx,outline,C,X,Y){if(msel.length){ctx.setLineDash([5,3]);msel.forEach(m=>{const o=objOf(m);if(o)outline(m.k,o,'#e08a00',2.5)});ctx.setLineDash([])}
+ if(marq){const x=X(Math.min(marq.a.x,marq.b.x)),y=Y(Math.min(marq.a.y,marq.b.y)),w=Math.abs(marq.b.x-marq.a.x)*view.s,h=Math.abs(marq.b.y-marq.a.y)*view.s;ctx.fillStyle='rgba(30,111,217,.08)';ctx.fillRect(x,y,w,h);ctx.strokeStyle=C.pr;ctx.lineWidth=1;ctx.setLineDash([4,3]);ctx.strokeRect(x,y,w,h);ctx.setLineDash([])}
+ if(tool==='cal'&&calPts){const pts=calPts.concat(calPts.length<2&&mouse?[mouse]:[]);ctx.strokeStyle='#e08a00';ctx.lineWidth=2;ctx.beginPath();pts.forEach((q,i)=>i?ctx.lineTo(X(q.x),Y(q.y)):ctx.moveTo(X(q.x),Y(q.y)));ctx.stroke();pts.forEach(q=>{ctx.beginPath();ctx.arc(X(q.x),Y(q.y),5,0,7);ctx.fillStyle='#e08a00';ctx.fill()})}}
+function groupProps(){const c={},N={wall:'جدار',room:'غرفة',item:'قطعة',label:'نص',dim:'قياس',op:'فتحة'};msel.forEach(m=>c[m.k]=(c[m.k]||0)+1);return`<div class="pt">⬚ تحديد متعدد (${msel.length})</div>${Object.entries(c).map(([k,n])=>`<div class="stat"><span>${N[k]}</span><b>${n}</b></div>`).join('')}<div class="row" style="margin-top:8px">${pAct('grot','⟳ تدوير ٩٠°')}${pAct('gdup','⧉ نسخ الكل')}</div><div class="row" style="margin-top:6px">${pAct('gclr','✕ إلغاء التحديد')}${pAct('gdel','🗑 حذف الكل','dan')}</div><div class="mu" style="margin-top:8px">اسحب أي عنصر محدد لتحريك المجموعة. Shift+نقر لإضافة عنصر أو إزالته.</div>`}
+function groupDelete(){const f=F(),ids=new Set(msel.map(m=>m.id));Object.values(ARR).forEach(a=>f[a]=f[a].filter(o=>!ids.has(o.id)));f.ops=f.ops.filter(o=>f.walls.some(w=>w.id===o.w));msel=[];sel=null;commit();renderProps();render();toast('حُذفت العناصر. اضغط ↶ تراجع لاسترجاعها')}
+function cloneSet(list,dx,dy){const f=F(),map={},out=[];list.forEach(m=>{const o=objOf(m);if(!o)return;const n=JSON.parse(JSON.stringify(o));n.id=uid();if(m.k==='wall')map[o.id]=n.id;moveObj(n,o,dx,dy);f[ARR[m.k]].push(n);out.push({k:m.k,id:n.id})});f.ops.filter(o=>map[o.w]).forEach(o=>f.ops.push(Object.assign({},o,{id:uid(),w:map[o.w]})));return out}
+function groupDup(){msel=cloneSet(msel,60,60);commit();renderProps();render();toast('نُسخت العناصر')}
+function groupRot(){const P=[];msel.forEach(m=>{const o=objOf(m);if(!o)return;if(o.pts)o.pts.forEach(q=>P.push(q));else if('x1' in o)P.push([o.x1,o.y1],[o.x2,o.y2]);else if('x' in o)P.push([o.x,o.y])});if(!P.length)return;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;P.forEach(q=>{x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])});const cx=(x0+x1)/2,cy=(y0+y1)/2,R=(x,y)=>[r1(cx-(y-cy)),r1(cy+(x-cx))];
+ msel.forEach(m=>{const o=objOf(m);if(!o)return;if(o.pts)o.pts=o.pts.map(q=>R(q[0],q[1]));else if('x1' in o){[o.x1,o.y1]=R(o.x1,o.y1);[o.x2,o.y2]=R(o.x2,o.y2)}else if('x' in o){[o.x,o.y]=R(o.x,o.y);if('r' in o)o.r=(o.r+90)%360}});commit();render();toast('دُوّرت المجموعة')}
+function onBoundary(x,y,pts,tol){for(let i=0;i<pts.length;i++){const a=pts[i],b=pts[(i+1)%pts.length];if(segD({x,y},a[0],a[1],b[0],b[1])<tol)return true}return false}
+function roomDupFull(){const o=getSel();if(!o||sel.k!=='room')return;const f=F(),bb=roomBox(o),dx=Math.round((bb.w+100)/10)*10,list=[{k:'room',id:o.id}];
+ f.walls.forEach(w=>{if(onBoundary(w.x1,w.y1,o.pts,20)&&onBoundary(w.x2,w.y2,o.pts,20))list.push({k:'wall',id:w.id})});f.items.forEach(i=>{if(inPoly(i.x,i.y,o.pts))list.push({k:'item',id:i.id})});f.labels.forEach(l=>{if(inPoly(l.x,l.y,o.pts))list.push({k:'label',id:l.id})});
+ const out=cloneSet(list,dx,0);sel=out[0];commit();renderProps();render();fitView();toast('نُسخت الغرفة مع جدرانها وأثاثها')}
+function rdp(pts,eps){if(pts.length<3)return pts;const a=pts[0],b=pts[pts.length-1];let md=0,mi=0;for(let i=1;i<pts.length-1;i++){const d=segD({x:pts[i][0],y:pts[i][1]},a[0],a[1],b[0],b[1]);if(d>md){md=d;mi=i}}if(md>eps){const l=rdp(pts.slice(0,mi+1),eps),r=rdp(pts.slice(mi),eps);return l.slice(0,-1).concat(r)}return[a,b]}
+function rdpClosed(pts,eps){if(pts.length<4)return pts;let fi=0,fd=0;for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[0][0],pts[i][1]-pts[0][1]);if(d>fd){fd=d;fi=i}}const A=rdp(pts.slice(0,fi+1),eps),Bq=rdp(pts.slice(fi).concat([pts[0]]),eps);return A.slice(0,-1).concat(Bq.slice(0,-1))}
+function detectRoom(p){const f=F(),b=wallBounds(f);if(!b)return null;const R=4,pad=30,x0=b.x0-pad,y0=b.y0-pad,W=Math.ceil((b.w+2*pad)/R)+2,Hh=Math.ceil((b.h+2*pad)/R)+2;if(W*Hh>6e6)return null;
+ const c=document.createElement('canvas');c.width=W;c.height=Hh;const x=c.getContext('2d');x.strokeStyle='#000';x.lineCap='square';
+ for(const w of f.walls){x.lineWidth=Math.max(1.5,w.t/R);x.beginPath();x.moveTo((w.x1-x0)/R,(w.y1-y0)/R);x.lineTo((w.x2-x0)/R,(w.y2-y0)/R);x.stroke()}
+ const dt=x.getImageData(0,0,W,Hh).data,sol=i=>dt[i*4+3]>60;const sx=Math.floor((p.x-x0)/R),sy=Math.floor((p.y-y0)/R);if(sx<1||sy<1||sx>=W-1||sy>=Hh-1)return'open';const s0=sy*W+sx;if(sol(s0))return null;
+ const mk=new Uint8Array(W*Hh),st=[s0];mk[s0]=1;while(st.length){const i=st.pop(),cx=i%W,cy=(i-cx)/W;if(cx===0||cy===0||cx===W-1||cy===Hh-1)return'open';for(const j of [i-1,i+1,i-W,i+W])if(!mk[j]&&!sol(j)){mk[j]=1;st.push(j)}}
+ const K=(a,b)=>a*100000+b,nx=new Map(),add=(ax,ay,bx,by)=>{const k=K(ax,ay);if(!nx.has(k))nx.set(k,[]);nx.get(k).push([bx,by])};
+ for(let i=0;i<W*Hh;i++){if(!mk[i])continue;const cx=i%W,cy=(i-cx)/W;if(!mk[i-W])add(cx,cy,cx+1,cy);if(!mk[i+1])add(cx+1,cy,cx+1,cy+1);if(!mk[i+W])add(cx+1,cy+1,cx,cy+1);if(!mk[i-1])add(cx,cy+1,cx,cy)}
+ let best=null,ba=0;while(nx.size){const k0=nx.keys().next().value;let ax=Math.floor(k0/100000),ay=k0%100000;const loop=[[ax,ay]];for(let g=0;g<2e6;g++){const k=K(ax,ay),l=nx.get(k);if(!l||!l.length){nx.delete(k);break}const q=l.pop();if(!l.length)nx.delete(k);ax=q[0];ay=q[1];if(ax===loop[0][0]&&ay===loop[0][1])break;loop.push([ax,ay])}const a=Math.abs(polyArea(loop));if(a>ba){ba=a;best=loop}}
+ if(!best||best.length<4)return null;let pts=best.filter((q,i)=>{const a=best[(i-1+best.length)%best.length],c2_=best[(i+1)%best.length];return(q[0]-a[0])*(c2_[1]-q[1])-(q[1]-a[1])*(c2_[0]-q[0])!==0});pts=rdpClosed(pts,1.6);if(pts.length<3)return null;
+ const fx=[],fy=[];f.walls.forEach(w=>{if(Math.abs(w.x1-w.x2)<.5)fx.push(w.x1-w.t/2,w.x1+w.t/2);if(Math.abs(w.y1-w.y2)<.5)fy.push(w.y1-w.t/2,w.y1+w.t/2)});const sn=(v,arr)=>{let b=v,bd=6;arr.forEach(c=>{if(Math.abs(c-v)<bd){bd=Math.abs(c-v);b=c}});return r1(b)};
+ return pts.map(q=>[sn(x0+q[0]*R,fx),sn(y0+q[1]*R,fy)])}
+
+/* ================= الكميات والكلفة ================= */
+const PRDEF={cur:'د.ع',brick:150,plaster:6000,paint:3500,conc:120000,steel:1100,door:175000,win:125000,skirt:4000,fl:{tile:15000,cer:12000,marble:40000,wood:25000,carpet:10000,stone:30000,conc:3000,grass:5000}};
+const PR=()=>{const c=cfg.pr||{},p=Object.assign({},PRDEF,c);p.fl=Object.assign({},PRDEF.fl,c.fl||{});return p};
+function boqCalc(){const o={len:0,gross:0,net:0,bricks:0,doors:0,wins:0,winA:0,fl:{},slab:0,skirt:0};
+ for(const f of D.floors){for(const w of f.walls){const L=wl(w)/100,h=w.h/100;let op=0;f.ops.filter(z=>z.w===w.id).forEach(z=>{const a=Math.min(z.wd,wl(w))/100*Math.min(z.h,w.h)/100;op+=a;if(z.t==='window'){o.wins++;o.winA+=a}else o.doors++});const net=Math.max(0,L*h-op);o.len+=L;o.gross+=L*h;o.net+=net;o.bricks+=net*(w.t<=15?47:w.t<=26?95:140)}
+  for(const r of f.rooms){if(r.plot)continue;const a=Math.abs(polyArea(r.pts))/1e4;o.fl[r.m]=(o.fl[r.m]||0)+a;o.slab+=a;o.skirt+=polyPer(r.pts)/100}}return o}
+function boqRows(){const q=boqCalc(),p=PR(),R=[];const A=(n,qty,u,k,pr)=>R.push({n,qty,u,k,pr,t:qty*pr});
+ A('الطابوق (مع ٥٪ هدر)',q.bricks*1.05,'طابوقة','brick',p.brick);A('اللبخ / البياض (وجهان)',q.net*2,'م²','plaster',p.plaster);A('الصبغ (وجهان)',q.net*2,'م²','paint',p.paint);
+ Object.entries(q.fl).forEach(([m,a])=>A('أرضيات: '+((FLOORS[m]||{}).n||m)+' (مع ١٠٪ هدر)',a*1.1,'م²','fl.'+m,p.fl[m]||0));
+ A('خرسانة السقف (سمك ١٥ سم)',q.slab*.15,'م³','conc',p.conc);A('حديد التسليح التقريبي',q.slab*.15*100,'كغم','steel',p.steel);A('الأبواب',q.doors,'عدد','door',p.door);A('الشبابيك',q.winA,'م²','win',p.win);A('الوزرة (النعلة)',q.skirt,'م','skirt',p.skirt);
+ return{R,q,p,tot:R.reduce((s,r)=>s+r.t,0)}}
+const nf=(v,d=0)=>Number(v).toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
+function boqTable(pr,edit){const {R,q,p,tot}=boqRows();const N=v=>pr?AR(v):v;return`<table class="boq"><tr><th>البند</th><th>الكمية</th><th>الوحدة</th><th>سعر الوحدة (${esc(p.cur)})</th><th>المبلغ</th></tr>${R.map(r=>`<tr><td style="text-align:right">${r.n}</td><td>${N(nf(r.qty,r.u==='م³'?2:r.u==='عدد'||r.u==='طابوقة'?0:1))}</td><td>${r.u}</td><td>${edit?`<input class="inp" type="number" data-pr="${r.k}" value="${r.pr}">`:N(nf(r.pr))}</td><td>${N(nf(r.t))}</td></tr>`).join('')}<tr><th colspan="4">المجموع التقريبي</th><th>${N(nf(tot))} ${esc(p.cur)}</th></tr></table><div class="mu" style="margin-top:6px">أطوال الجدران: ${N(nf(q.len,1))} م · مساحة الجدران الصافية: ${N(nf(q.net,1))} م² · مساحة الأسقف: ${N(nf(q.slab,1))} م²</div>`}
+function boqPanel(){if(!D)return;const ed=!VIEW&&isMgr();openPanel('💰 حساب الكميات والكلفة التقريبية',`<div class="card">${ed?`<div class="row" style="margin-bottom:8px"><label class="f nf" style="margin:0">العملة<input id="bqCur" class="inp" value="${esc(PR().cur)}" style="width:110px"></label><div class="mu">عدّل أسعار الوحدات حسب سوقك، وتُحفظ لكل المشاريع.</div></div>`:''}<div id="bqT" style="overflow-x:auto">${boqTable(false,ed)}</div></div><div class="card mu">⚠️ الكميات تقديرية من المخطط: الطابوق بمعدل ٤٧ للجدار ١٢ سم و٩٥ للجدار ٢٤ سم في المتر المربع، والحديد ١٠٠ كغم لكل م³. راجعها مع المهندس قبل الشراء.</div><div class="row"><button class="btn" id="bqP">🖨 طباعة الجدول</button><button class="btn sec" id="bqX">📄 تصدير CSV</button></div>`,b=>{
+ const upd=()=>{b.querySelector('#bqT').innerHTML=boqTable(false,ed)};
+ b.onchange=e=>{const i=e.target;if(i.id==='bqCur'){cfg.pr=cfg.pr||{};cfg.pr.cur=i.value.trim()||'د.ع';saveCfg();upd();return}const k=i.dataset.pr;if(!k)return;const v=parseFloat(i.value)||0;cfg.pr=cfg.pr||{};if(k.startsWith('fl.')){cfg.pr.fl=cfg.pr.fl||{};cfg.pr.fl[k.slice(3)]=v}else cfg.pr[k]=v;saveCfg();upd()};
+ b.querySelector('#bqP').onclick=()=>{closePanel();printView({only:'boq'})};
+ b.querySelector('#bqX').onclick=()=>{const {R,tot,p}=boqRows();const csv='﻿'+['البند,الكمية,الوحدة,سعر الوحدة,المبلغ',...R.map(r=>[`"${r.n}"`,r.qty.toFixed(2),r.u,r.pr,Math.round(r.t)].join(',')),`المجموع,,,,${Math.round(tot)} ${p.cur}`].join('\n');dl((cur.n||'مشروع')+' - الكميات.csv',csv,'text/csv;charset=utf-8')}},boqPanel)}
+
+/* ================= الواجهات ================= */
+const DIRN={front:'الواجهة الأمامية',back:'الواجهة الخلفية',right:'الواجهة اليمنى',left:'الواجهة اليسرى'};
+function elevCanvas(dir,pxm=45){const fl=D.floors,el=floorElevs();let b=null;fl.forEach(f=>{const w=wallBounds(f);if(w)b=b?{x0:Math.min(b.x0,w.x0),y0:Math.min(b.y0,w.y0),x1:Math.max(b.x1,w.x1),y1:Math.max(b.y1,w.y1)}:w});if(!b)return null;
+ const hz=dir==='front'||dir==='back',span=(hz?b.x1-b.x0:b.y1-b.y0)+60,topF=fl.length-1,top=el[topF]+(fl[topF].h||300)+100,s=pxm/100,pad=70;
+ const W=Math.round(span*s+pad*2+60),Hh=Math.round(top*s+pad*2+30),k=2,c=document.createElement('canvas');c.width=W*k;c.height=Hh*k;const x=c.getContext('2d');x.scale(k,k);x.fillStyle='#fff';x.fillRect(0,0,W,Hh);
+ const gy=Hh-pad-10,U=u=>pad+(u+30)*s,Z=z=>gy-z*s;
+ const uOf=(px,py)=>dir==='front'?b.x1-px:dir==='back'?px-b.x0:dir==='right'?b.y1-py:py-b.y0;
+ const dOf=(px,py)=>dir==='front'?py:dir==='back'?-py:dir==='right'?-px:px;
+ const faces=[];fl.forEach((f,fi)=>f.walls.forEach(w=>{const dx=Math.abs(w.x2-w.x1),dy=Math.abs(w.y2-w.y1);if(hz?dy>dx*.18:dx>dy*.18)return;faces.push({f,w,E:el[fi],dep:dOf((w.x1+w.x2)/2,(w.y1+w.y2)/2)})}));
+ faces.sort((a,b2)=>b2.dep-a.dep);
+ const near=faces.length?Math.min(...faces.map(f=>f.dep)):0,far=faces.length?Math.max(...faces.map(f=>f.dep)):1;
+ for(const {f,w,E,dep} of faces){const L=wl(w)||1,u1=uOf(w.x1,w.y1),u2=uOf(w.x2,w.y2),ua=Math.min(u1,u2)-w.t/2,ub=Math.max(u1,u2)+w.t/2;const t=(dep-near)/((far-near)||1);x.fillStyle=shade('#efe8da',-t*.12);x.strokeStyle='#333';x.lineWidth=1;x.fillRect(U(ua),Z(E+w.h),(ub-ua)*s,w.h*s);x.strokeRect(U(ua),Z(E+w.h),(ub-ua)*s,w.h*s);
+  f.ops.filter(o=>o.w===w.id).forEach(o=>{const[a,b2]=opRange(o,w);const pa=uOf(w.x1+(w.x2-w.x1)/L*a,w.y1+(w.y2-w.y1)/L*a),pb=uOf(w.x1+(w.x2-w.x1)/L*b2,w.y1+(w.y2-w.y1)/L*b2),l=Math.min(pa,pb),r=Math.max(pa,pb);const z0=o.t==='window'?(o.sl||0):0,z1=Math.min(z0+o.h,w.h);
+   x.fillStyle=o.t==='window'||o.t==='slide'?'#a9cfe8':'#8b5e3c';x.fillRect(U(l),Z(E+z1),(r-l)*s,(z1-z0)*s);x.strokeStyle='#222';x.lineWidth=1.2;x.strokeRect(U(l),Z(E+z1),(r-l)*s,(z1-z0)*s);x.beginPath();if(o.t==='window'){x.moveTo(U((l+r)/2),Z(E+z1));x.lineTo(U((l+r)/2),Z(E+z0))}else if(o.t==='door2'||o.t==='slide'){x.moveTo(U((l+r)/2),Z(E+z1));x.lineTo(U((l+r)/2),Z(E))}else{x.arc(U(r)-6,Z(E+z1/2),2,0,7)}x.stroke()})}
+ const L0=U(-15),L1=U(span-45);
+ fl.forEach((f,fi)=>{x.strokeStyle='#222';x.lineWidth=2.5;x.beginPath();x.moveTo(L0,Z(el[fi]+(f.h||300)));x.lineTo(L1,Z(el[fi]+(f.h||300)));x.stroke()});
+ x.fillStyle='#e3dccd';x.fillRect(L0,Z(top),L1-L0,100*s);x.strokeStyle='#333';x.lineWidth=1.2;x.strokeRect(L0,Z(top),L1-L0,100*s);
+ x.strokeStyle='#000';x.lineWidth=3;x.beginPath();x.moveTo(pad*.4,gy);x.lineTo(W-pad*.4,gy);x.stroke();x.lineWidth=1;for(let i=pad*.4;i<W-pad*.4;i+=10){x.beginPath();x.moveTo(i,gy);x.lineTo(i-7,gy+7);x.stroke()}
+ x.font='bold 13px Cairo,Tahoma,Arial';x.fillStyle='#000';x.textAlign='left';const dxL=W-pad+14;x.strokeStyle='#1e6fd9';x.lineWidth=1;
+ fl.forEach((f,fi)=>{const z0=el[fi],z1=z0+(f.h||300);x.beginPath();x.moveTo(dxL,Z(z0));x.lineTo(dxL,Z(z1));x.moveTo(dxL-4,Z(z0));x.lineTo(dxL+4,Z(z0));x.moveTo(dxL-4,Z(z1));x.lineTo(dxL+4,Z(z1));x.stroke();x.save();x.translate(dxL+14,(Z(z0)+Z(z1))/2);x.rotate(-Math.PI/2);x.textAlign='center';x.fillText(AR(((f.h||300)/100).toFixed(2))+' م',0,0);x.restore()});
+ x.textAlign='center';x.font='bold 16px Cairo,Tahoma,Arial';x.fillText(DIRN[dir]+'  —  الارتفاع الكلي '+AR((top/100).toFixed(2))+' م',W/2,Hh-14);
+ return c}
+function elevPanel(){if(!D)return;const dirs=['front','back','right','left'];const imgs=dirs.map(d=>{const c=elevCanvas(d);return c?c.toDataURL('image/png'):null});if(!imgs[0]){toast('ارسم الجدران أولاً');return}
+ openPanel('🏛 الواجهات',`<div class="mu" style="margin-bottom:8px">تُرسم الواجهات تلقائياً من الجدران والأبواب والنوافذ في كل الطوابق، مع دروة السطح بارتفاع متر.</div>${dirs.map((d,i)=>`<div class="card elv"><div class="row" style="margin-bottom:6px"><h3 style="margin:0">${DIRN[d]}</h3><button class="btn sm sec nf" data-d="${i}">⬇ PNG</button></div><img src="${imgs[i]}"></div>`).join('')}<button class="btn" id="elP">🖨 طباعة الواجهات</button>`,b=>{b.onclick=e=>{const t=e.target.closest('[data-d]');if(t)dlURL(cur.n+' - '+DIRN[dirs[+t.dataset.d]]+'.png',imgs[+t.dataset.d]);if(e.target.id==='elP'){closePanel();printView({only:'elev'})}}})}
+
+/* ================= ملف عرض للعميل ================= */
+function makeViewer(){if(!cur)return;persistNow();const mk='/*L'+'IC*/',parts=SRC.split(mk);if(parts.length!==3){toast('تعذّر إنشاء ملف العرض');return}const ci={};CIF.forEach(([k])=>{if(civ(k))ci[k]=civ(k)});const lic={m:2,id:'VIEW-'+rndStr(5),dz:DZ(),tx:TX(),th:THC(),ci,pj:{n:cur.n,d:D}};const out=parts[0]+mk+JSON.stringify(lic).replace(/</g,'\\u003c')+mk+parts[2];dl(`${cur.n} - عرض للعميل.html`.replace(/[\\/:*?"<>|]/g,'-'),out,'text/html;charset=utf-8');toast('⬇ نُزّل ملف العرض. أرسله للعميل ليفتحه في المتصفح (للمشاهدة فقط)')}
+function startViewer(){document.body.classList.add('view');me={u:'viewer',role:'user',n:'العميل'};cur={id:'view',n:LIC.pj.n,o:'viewer',u:Date.now(),d:LIC.pj.d};D=cur.d;hideAll();$('#app').classList.remove('hide');fillTexts();us=[];rs=[];lastSnap=snap();const bd=$('#badge');bd.classList.remove('hide');bd.textContent='👁 نسخة عرض';bd.onclick=null;refreshAll();setTool('select');setView(2);setTimeout(fitView,50)}
+function viewMenu(){const it=[['🗺','المخطط',()=>{closePanel();setView(2)}],['🧊','العرض ثلاثي الأبعاد',()=>{closePanel();setView(3)}],['🖨','طباعة / PDF',()=>{closePanel();printView()}],['🖼','صورة المخطط',exportPNG],['🏛','الواجهات',elevPanel],['💰','الكميات التقريبية',boqPanel],['❓','طريقة الاستخدام',helpPanel],['🌙','الوضع الداكن / الفاتح',()=>{toggleDark();viewMenu()}]];openPanel('☰ القائمة',`<div class="card"><b>${esc(cur.n)}</b><div class="mu">نسخة عرض فقط${civ('org')?' · '+esc(civ('org')):''}</div></div><div class="mgrid">${it.map((x,i)=>`<button class="mbtn" data-i="${i}"><i>${x[0]}</i>${x[1]}</button>`).join('')}</div><div class="cred credH">${credHTML()}</div>`,b=>{b.onclick=e=>{const x=e.target.closest('.mbtn');if(x)it[+x.dataset.i][2]()}})}
+$('#pname').onclick=()=>{if(!VIEW)projectsPanel()};
+
+/* ================= إجراءات لوحة الخصائص ================= */
+function propAct(a){const f=F();
+ if(a==='gdel'){groupDelete();return true}if(a==='gclr'){msel=[];renderProps();render();return true}if(a==='gdup'){groupDup();return true}if(a==='grot'){groupRot();return true}
+ if(a==='dupFull'){roomDupFull();return true}
+ if(a==='bgUp'){imgIn.value='';imgIn.click();return true}if(a==='bgCal'){calPts=null;setTool('cal');return true}if(a==='bgMove'){setTool('bgm');return true}
+ if(a==='bgDel'){delete f.bg;commit();render();renderProps();toast('حُذفت الصورة. اضغط ↶ تراجع لاسترجاعها');return true}
+ if(a==='boq'){boqPanel();return true}if(a==='elev'){elevPanel();return true}if(a==='presets'){presetsPanel();return true}
+ return false}
+
+/* ================= خرائط جاهزة: العراق والخليج ================= */
+const PRESETS=[
+ {n:'بيت ١٠٠ م² (٥×٢٠) طابق واحد',reg:'iq',d:'غرفتا نوم · حمام · استقبال · هول · مطبخ · حديقة أمامية',q:{pw:5,pl:20,sf:3,sb:1,ss:0,fl:1,bd:2,ms:0,bt:1,lv:1,gs:1,gr:0}},
+ {n:'بيت ١٠٠ م² (٥×٢٠) طابقين',reg:'iq',d:'٣ غرف نوم · حمامان · استقبال · هول · درج داخلي',q:{pw:5,pl:20,sf:3,sb:1,fl:2,bd:3,ms:1,bt:2,lv:1,gs:1,gr:0}},
+ {n:'بيت ١٥٠ م² (٧.٥×٢٠) طابقين',reg:'iq',d:'٤ غرف · ٣ حمامات · استقبال · هول',q:{pw:7.5,pl:20,sf:4,sb:1.5,fl:2,bd:4,ms:1,bt:3,lv:1,gs:1,gr:0}},
+ {n:'بيت ٢٠٠ م² (١٠×٢٠) طابق واحد',reg:'iq',d:'٣ غرف · حمامان · استقبال · هول · كراج',q:{pw:10,pl:20,sf:4,sb:1.5,fl:1,bd:3,ms:1,bt:2,lv:1,gs:1,gr:1}},
+ {n:'بيت ٢٠٠ م² (١٠×٢٠) طابقين',reg:'iq',d:'٥ غرف · ٤ حمامات · استقبال · كراج · مخزن',q:{pw:10,pl:20,sf:4,sb:1.5,fl:2,bd:5,ms:1,bt:4,lv:1,gs:1,gr:1,st:1}},
+ {n:'بيت ٢٥٠ م² (١٠×٢٥) طابقين',reg:'iq',d:'٥ غرف (٢ ماستر) · طعام · كراج · مخزن',q:{pw:10,pl:25,sf:5,sb:2,fl:2,bd:5,ms:2,bt:4,lv:1,gs:1,gr:1,st:1,dn:1}},
+ {n:'بيت ٣٠٠ م² (١٢×٢٥) طابقين',reg:'iq',d:'٦ غرف · ٥ حمامات · طعام · غسيل · طابع كلاسيكي',q:{pw:12,pl:25,sf:5,sb:2,fl:2,bd:6,ms:2,bt:5,lv:1,gs:1,gr:1,dn:1,ld:1,sty:'classic'}},
+ {n:'بيت ٤٠٠ م² (٢٠×٢٠) طابقين',reg:'iq',d:'٦ غرف · طعام · مخزن · غسيل · حديقة واسعة',q:{pw:20,pl:20,sf:6,sb:2,ss:1,fl:2,bd:6,ms:2,bt:5,lv:1,gs:1,gr:1,dn:1,st:1,ld:1,sty:'classic'}},
+ {n:'فيلا ٤٠٠ م² (٢٠×٢٠) دورين',reg:'gulf',d:'مجلس رجال بمدخل خاص · طعام · ٥ غرف · خادمة · مواقف',q:{pw:20,pl:20,sf:6,sb:2,ss:2,fl:2,bd:5,ms:2,bt:5,lv:1,gs:0,gr:0,mj:1,dn:1,md:1,pk:1,sty:'arabic'}},
+ {n:'فيلا ٦٠٠ م² (٢٠×٣٠) دورين',reg:'gulf',d:'مجلس · صالة ضيوف · طعام · ٦ غرف (٣ ماستر) · خادمة وسائق',q:{pw:20,pl:30,sf:6,sb:3,ss:2,fl:2,bd:6,ms:3,bt:6,lv:1,gs:1,mj:1,dn:1,md:1,dr:1,ld:1,pk:1,sty:'arabic'}},
+ {n:'دوبلكس ٣٠٠ م² (١٥×٢٠)',reg:'gulf',d:'مجلس بمدخل خاص · ٤ غرف · خادمة · طابع حديث',q:{pw:15,pl:20,sf:5,sb:2,ss:1.5,fl:2,bd:4,ms:1,bt:4,lv:1,mj:1,md:1,pk:1,sty:'modern'}},
+ {n:'فيلا دور واحد ٣٧٥ م² (١٥×٢٥)',reg:'gulf',d:'مجلس · طعام · ٤ غرف · خادمة · مواقف',q:{pw:15,pl:25,sf:6,sb:2,ss:1.5,fl:1,bd:4,ms:1,bt:3,lv:1,mj:1,dn:1,md:1,pk:1}},
+ {n:'استراحة / ملحق',reg:'gulf',d:'مجلس كبير · مطبخ · حمام ضيوف · مواقف',q:{pw:12,pl:20,sf:8,sb:2,ss:1,fl:1,bd:0,bt:0,lv:0,gs:0,mj:1,pk:1,sty:'arabic'}},
+ {n:'شقة غرفتين ١١٠ م²',reg:'apt',d:'غرفتان (ماستر) · حمامان · صالة ومطبخ مفتوح',q:{pw:9,pl:12.5,sf:0,sb:0,ss:0,fl:1,bd:2,ms:1,bt:2,lv:1,gs:0,gr:0,kt:'open'}},
+ {n:'شقة ٣ غرف ١٥٠ م²',reg:'apt',d:'٣ غرف · حمامان · صالة · ضيوف · مطبخ',q:{pw:10,pl:15,sf:0,sb:0,ss:0,fl:1,bd:3,ms:1,bt:2,lv:1,gs:1,gr:0}},
+ {n:'شقة ٣ غرف + خادمة ١٨٠ م²',reg:'apt',d:'٣ غرف · ٣ حمامات · طعام · غرفة خادمة',q:{pw:12,pl:15,sf:0,sb:0,ss:0,fl:1,bd:3,ms:1,bt:3,lv:1,gs:1,dn:1,md:1,gr:0}}
+];
+const presetQ=p=>Object.assign(REQDEF(),{gr:0,gs:0,st:0,ld:0,mj:0,dn:0,md:0,dr:0,pk:0},p.q);
+function presetsPanel(flt){flt=flt||'all';const L=PRESETS.filter(p=>flt==='all'||p.reg===flt);
+ openPanel('🗺 خرائط وتصاميم جاهزة',`<div class="row" style="flex-wrap:wrap;margin-bottom:10px">${[['all','الكل'],['iq','🇮🇶 بيوت عراقية'],['gulf','🏰 فلل خليجية'],['apt','🏢 شقق']].map(([k,t])=>`<button class="btn sm nf ${k===flt?'':'sec'}" data-f="${k}">${t}</button>`).join('')}</div><div class="pgrid">${L.map(p=>{const i=PRESETS.indexOf(p),q=presetQ(p);return`<div class="pcard"><canvas data-pi="${i}"></canvas><b>${esc(p.n)}</b><div class="mu">${esc(p.d)}</div><div class="mu">📐 ${AR(q.pw)}×${AR(q.pl)} م · ${AR(q.fl)} ${q.fl>1?'طوابق':'طابق'}</div><button class="btn sm" data-u="${i}">✏️ استخدام وتعديل</button></div>`}).join('')}</div><div class="card mu" style="margin-top:12px">كل خريطة تُفتح كمشروع جديد قابل للتعديل الكامل: الجدران، والغرف ومساحاتها، والأبواب والنوافذ، والأثاث. ويمكنك تغيير متطلباتها (المساحة، عدد الغرف، الطوابق) من «📝 بيانات العميل» ثم إعادة توليدها.</div>`,b=>{
+  b.onclick=e=>{const t=e.target.closest('button');if(!t)return;if(t.dataset.f){presetsPanel(t.dataset.f);return}if(t.dataset.u!=null){const p=PRESETS[+t.dataset.u],q=presetQ(p),g=genPlan(q),d=newData();d.floors=g.floors;d.wh=g.wh;d.req=q;createProject(p.n,d);closePanel();toast('✅ فُتحت الخريطة كمشروع جديد. عدّل ما تشاء')}};
+  const cs=[...b.querySelectorAll('canvas[data-pi]')];let i=0;const nx=()=>{if(i>=cs.length||!$('#pnl').classList.contains('show'))return;const c=cs[i++];try{const p=PRESETS[+c.dataset.pi];if(!p._g)p._g=genPlan(presetQ(p));const cv=planCanvas(p._g.floors[0],320,1.5,true);c.width=cv.width;c.height=cv.height;c.getContext('2d').drawImage(cv,0,0)}catch(err){}setTimeout(nx,0)};setTimeout(nx,30)},null)}
+
+/* ================= الطباعة بمقياس رسم ================= */
+function printView(opt){if(!D)return;opt=opt||{};persistNow();const paper=$('#prPaper').value,or=$('#prOr').value,sc=$('#prSc').value,PS={A4:[210,297],A3:[297,420]}[paper],pw=or==='l'?PS[1]:PS[0],ph=or==='l'?PS[0]:PS[1];
+ let st=$('#pgsz');if(!st){st=document.createElement('style');st.id='pgsz';document.head.appendChild(st)}st.textContent=`@page{size:${paper} ${or==='l'?'landscape':'portrait'};margin:8mm}.prPage{width:${pw-16}mm;min-height:${ph-16}mm;padding:6mm!important;box-sizing:border-box}@media print{.prPage{min-height:0;height:${ph-17}mm;margin:0!important}}`;
+ const dt=AR(new Date().toLocaleDateString('en-GB')),org=civ('org'),q=D.req||{},wm=isTrial()?'<div class="wm">نسخة تجريبية</div>':'',credL=`<div class="prCredL" style="text-align:center;font-size:10px;color:#555;margin-top:4mm">© جميع الحقوق محفوظة${DZ().n?' للمصمم: '+esc(DZ().n):''}${DZ().wa?' · واتساب: '+AR(esc(DZ().wa)):''}</div>`;
+ const pages=[];let warn=false;const total=()=>pages.length;
+ const head=t=>`<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:2px solid #000;padding-bottom:2mm;margin-bottom:3mm"><b style="font-size:17px">${esc(org||TX().t)}</b><b style="font-size:15px">${t}</b></div>`;
+ const tblock=(fn,scl)=>`<table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:3mm" border="1"><tr><td><b>المشروع</b><br>${esc(cur.n)}</td><td><b>العميل</b><br>${esc(q.cn||'—')}</td><td><b>اللوحة</b><br>${esc(fn)}</td><td><b>المقياس</b><br>${scl}</td><td><b>التاريخ</b><br>${dt}</td><td><b>التصميم</b><br>${esc(DZ().n||org||'—')}</td><td><b>رقم اللوحة</b><br>@@N@@</td></tr></table>`;
+ if(!opt.only){const aw=pw-28,ah=ph-16-12-14-22;
+  D.floors.forEach(f=>{if(!f.walls.length&&!f.rooms.length&&!f.items.length)return;const b=bounds(f),pad=60,bw=b.x1-b.x0+pad*2,bh=b.y1-b.y0+pad*2;let mmc,lbl;if(sc==='fit'){mmc=Math.min(aw/bw,ah/bh);const den=Math.round(10/mmc/5)*5;lbl='١:'+AR(den)+' تقريباً'}else{mmc=10/+sc;lbl='١:'+AR(sc);if(bw*mmc>aw+1||bh*mmc>ah+1)warn=true}
+   const pxmm=3.78,s=mmc*pxmm,W=Math.round(bw*s),Hh=Math.round(bh*s),k=Math.min(3,Math.sqrt(16e6/(W*Hh)));const c=document.createElement('canvas');c.width=Math.round(W*k);c.height=Math.round(Hh*k);const x=c.getContext('2d');x.setTransform(k,0,0,k,0,0);renderPlan(x,W,Hh,{s,ox:(pad-b.x0)*s,oy:(pad-b.y0)*s},{print:true,floor:f,fsc:.8});if(isTrial()){x.setTransform(1,0,0,1,0,0);wmark(x,c.width,c.height)}
+   pages.push(`<div class="prPage">${wm}${head(esc(f.n||'المخطط'))}<div style="height:${ah}mm;display:flex;align-items:center;justify-content:center;overflow:hidden"><img src="${c.toDataURL('image/png')}" style="width:${(bw*mmc).toFixed(1)}mm;max-width:none"></div>${tblock(f.n||'مخطط',lbl)}${credL}</div>`)});
+  let rows='',tot=0,j=0;D.floors.forEach(f=>f.rooms.filter(r=>!r.plot).forEach(r=>{const a=Math.abs(polyArea(r.pts));tot+=a;rows+=`<tr><td>${AR(++j)}</td><td>${esc(f.n)}</td><td>${esc(r.n)}</td><td>${esc((FLOORS[r.m]||{}).n||'')}</td><td>${fmtA(a,1)}</td></tr>`}));
+  if(rows)pages.push(`<div class="prPage">${wm}${head('جدول الغرف والمساحات')}<table><tr><th>ت</th><th>الطابق</th><th>الغرفة</th><th>الأرضية</th><th>المساحة</th></tr>${rows}<tr><th colspan="4">المجموع</th><th>${fmtA(tot,1)}</th></tr></table>${civ('mgr')?`<div style="margin-top:14mm;text-align:left;padding-left:20mm">${esc(civ('role')||'المدير')}<br><b>${esc(civ('mgr'))}</b></div>`:''}${credL}</div>`);
+  if($('#prReq').checked){const r=reqPrint();if(r)pages.push(r)}}
+ if(opt.only==='boq'||(!opt.only&&$('#prBoq').checked))pages.push(`<div class="prPage">${wm}${head('جدول الكميات والكلفة التقريبية')}<div style="font-size:12px;margin-bottom:3mm">المشروع: <b>${esc(cur.n)}</b>${q.cn?' · العميل: <b>'+esc(q.cn)+'</b>':''} · ${dt}</div>${boqTable(true,false)}<div style="font-size:11px;margin-top:3mm">* الكميات تقديرية ولا تغني عن جدول الكميات الهندسي.</div>${credL}</div>`);
+ if(opt.only==='elev'||(!opt.only&&$('#prElev').checked))['front','back','right','left'].forEach(d=>{const c=elevCanvas(d,60);if(c)pages.push(`<div class="prPage">${wm}${head(DIRN[d])}<img src="${c.toDataURL('image/png')}" style="width:100%">${tblock(DIRN[d],'—')}${credL}</div>`)});
+ $('#prB').innerHTML=(warn?`<div class="card noprint" style="max-width:700px;margin:10px auto;border-color:var(--er);color:var(--er)">⚠️ المخطط أكبر من الورقة بهذا المقياس. اختر ورقة A3 أو اتجاهاً أفقياً أو مقياساً أصغر.</div>`:'')+pages.map((p,i)=>p.replace('@@N@@',AR(i+1)+' / '+AR(total()))).join('')||'<div class="prPage">المخطط فارغ</div>';$('#prv').classList.add('show');$('#prCred').onchange()}
+['#prPaper','#prOr','#prSc','#prBoq','#prElev','#prReq'].forEach(s=>$(s).addEventListener('change',()=>printView()));
+
 window.addEventListener('beforeunload',persistNow);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)persistNow()});
-function boot(){buildTools();applyTheme();fillTexts();if(isTrial()){const st=trialState();showAct(st);return}startLogin()}
+function boot(){buildTools();applyTheme();fillTexts();if(LIC.m===2){startViewer();return}if(isTrial()){const st=trialState();showAct(st);return}startLogin()}
 boot();
 </script>
 </body>

@@ -96,6 +96,7 @@ h3{margin:2px 0 8px;font-size:15.5px}
 .prPage td,.prPage th{border:1px solid #999;padding:4px 8px;text-align:center}
 .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:90px;color:rgba(210,0,0,.13);transform:rotate(-25deg);pointer-events:none;font-weight:700;white-space:nowrap}
 .code{font-size:20px;letter-spacing:2px;font-weight:700;direction:ltr;display:inline-block}
+@media(min-width:0){.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:0 14px}}
 @media(max-width:760px){
  #main{flex-direction:column}
  #tools{order:3;width:auto;height:62px;flex-direction:row;overflow-x:auto;overflow-y:hidden;border:0;border-top:1px solid var(--bd)}
@@ -400,7 +401,7 @@ function renderPlan(ctx,W,Hh,v,opt){const f=opt.floor,pr=!!opt.print,s=v.s;const
  for(const d of f.dims){const L=Math.hypot(d.x2-d.x1,d.y2-d.y1);if(L<1)continue;const ux=(d.x2-d.x1)/L,uy=(d.y2-d.y1)/L,nx=-uy,ny=ux,tk=6/s;ctx.strokeStyle=pr?'#333':C.pr;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(d.x1),Y(d.y1));ctx.lineTo(X(d.x2),Y(d.y2));for(const [px,py] of [[d.x1,d.y1],[d.x2,d.y2]]){ctx.moveTo(X(px+nx*tk-ux*tk),Y(py+ny*tk-uy*tk));ctx.lineTo(X(px-nx*tk+ux*tk),Y(py-ny*tk+uy*tk))}ctx.stroke();ctx.save();ctx.translate(X((d.x1+d.x2)/2),Y((d.y1+d.y2)/2));let an=Math.atan2(uy,ux);if(an>Math.PI/2||an<=-Math.PI/2)an+=Math.PI;ctx.rotate(an);ctx.font='bold '+fz(12);ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillStyle=pr?'#000':C.pr;ctx.fillText(fmtL(L,pr),0,-3);ctx.restore()}
  // أسماء الغرف
  ctx.textAlign='center';ctx.textBaseline='middle';
- for(const r of f.rooms){if(r.pts.length<3)continue;const A=Math.abs(polyArea(r.pts));if(Math.sqrt(A)*s<50)continue;const [cx,cy]=centroid(r.pts);ctx.font='bold '+fz(13);const t1=r.n||'',t2=fmtA(A,pr);ctx.lineWidth=3;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.fillStyle='#222';if(t1){ctx.strokeText(t1,X(cx),Y(cy)-8);ctx.fillText(t1,X(cx),Y(cy)-8)}ctx.font=fz(11.5);ctx.strokeText(t2,X(cx),Y(cy)+9);ctx.fillText(t2,X(cx),Y(cy)+9)}
+ for(const r of f.rooms){if(r.pts.length<3||r.plot)continue;const A=Math.abs(polyArea(r.pts));if(Math.sqrt(A)*s<50)continue;const [cx,cy]=centroid(r.pts);ctx.font='bold '+fz(13);const t1=r.n||'',t2=fmtA(A,pr);ctx.lineWidth=3;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.fillStyle='#222';if(t1){ctx.strokeText(t1,X(cx),Y(cy)-8);ctx.fillText(t1,X(cx),Y(cy)-8)}ctx.font=fz(11.5);ctx.strokeText(t2,X(cx),Y(cy)+9);ctx.fillText(t2,X(cx),Y(cy)+9)}
  for(const l of f.labels){ctx.font='bold '+fz(Math.max(9,(l.sz||30)*s));ctx.fillStyle=l.c||C.tx;ctx.fillText(pr?AR(l.tx):l.tx,X(l.x),Y(l.y))}
  if(pr){// مقياس الرسم
   const m=100*s;ctx.fillStyle='#000';ctx.fillRect(20,Hh-24,m,4);ctx.font=fz(11);ctx.textAlign='left';ctx.fillText(AR('١ م'),24+m,Hh-22);return}
@@ -522,25 +523,25 @@ const fC=(l,k,v)=>`<label class="f">${l}<input type="color" class="inp" data-k="
 const fS=(l,k,v,opts)=>`<label class="f">${l}<select class="inp" data-k="${k}">${opts.map(([a,b])=>`<option value="${a}"${a==v?' selected':''}>${b}</option>`).join('')}</select></label>`;
 const pAct=(a,t,cls='sec')=>`<button class="btn sm ${cls}" data-a="${a}">${t}</button>`;
 function renderProps(){const el=$('#props');if(!D){el.innerHTML='';return}const o=getSel();let h='';
- if(!o){const f=F();let A=0;f.rooms.forEach(r=>A+=Math.abs(polyArea(r.pts)));
+ if(!o){const f=F();let A=0;f.rooms.forEach(r=>{if(!r.plot)A+=Math.abs(polyArea(r.pts))});const wb=wallBounds(f);
   h=`<div class="pt">📐 المشروع</div>${fT('اسم المشروع','pn',cur.n)}
-  <div class="row">${fN('الشبكة (سم)','grid',D.grid,5)}${fN('سماكة الجدار','wt',D.wt)}</div>${fN('ارتفاع الجدار (سم)','wh',D.wh,10)}
+  <div class="row">${fN('الشبكة (سم)','grid',D.grid,5)}${fN('سماكة الجدار','wt',D.wt)}</div>${fN('ارتفاع الجدار (سم)','wh',D.wh,10)}${D.req&&D.req.cn?`<div class="stat"><span>العميل</span><b>${esc(D.req.cn)}</b></div>`:''}<button class="btn sm" data-a="req" style="width:100%;margin:6px 0">📝 بيانات العميل والمتطلبات</button>${wb?`<hr class="sep"><div class="pt">📏 أبعاد البناء</div><div class="row">${fN('العرض (سم)','bw',wb.w,10)}${fN('الطول (سم)','bl',wb.h,10)}</div><div class="stat"><span>مساحة البناء</span><b>${fmtA(wb.w*wb.h)}</b></div>${D.floors.length>1?`<label class="ck"><input type="checkbox" data-k="allF" ${D.allF!==false?'checked':''}> تطبيق تعديل المقاسات على كل الطوابق</label>`:''}<div class="mu">اكتب الرقم واضغط Enter لتكبير المخطط أو تصغيره.</div>`:''}
   <label class="ck"><input type="checkbox" data-k="showLen" ${cfg.showLen?'checked':''}> إظهار أطوال الجدران</label>
   <hr class="sep"><div class="pt">🏢 الطابق الحالي</div>${fT('اسم الطابق','fn',f.n)}${fN('ارتفاع الطابق (سم)','fh',f.h||300,10)}
   <div class="row">${pAct('floorAdd','＋ طابق جديد')}${pAct('floorDup','⧉ نسخ الطابق')}</div><div class="row" style="margin-top:6px">${D.floors.length>1?pAct('floorDel','🗑 حذف الطابق','dan'):''}</div>
   <hr class="sep"><div class="pt">📊 الإحصاءات</div>
   <div class="stat"><span>الجدران</span><b>${f.walls.length}</b></div><div class="stat"><span>الغرف</span><b>${f.rooms.length}</b></div><div class="stat"><span>الأبواب والنوافذ</span><b>${f.ops.length}</b></div><div class="stat"><span>قطع الأثاث</span><b>${f.items.length}</b></div><div class="stat"><span>مجموع مساحة الغرف</span><b>${fmtA(A)}</b></div>
-  ${f.rooms.map(r=>`<div class="stat mu"><span>${esc(r.n)}</span><span>${fmtA(Math.abs(polyArea(r.pts)))}</span></div>`).join('')}
+  ${f.rooms.filter(r=>!r.plot).map(r=>`<div class="stat mu"><span>${esc(r.n)}</span><span>${fmtA(Math.abs(polyArea(r.pts)))}</span></div>`).join('')}
   <hr class="sep"><div class="mu">💡 اختر أداة من الشريط وابدأ الرسم. اسحب المساحة الفارغة للتحريك، والعجلة للتكبير. اضغط على أي عنصر لتعديله.</div><div class="cred credH">${credHTML()}</div>`}
  else if(sel.k==='wall'){h=`<div class="pt">▬ جدار</div>${fN('الطول (سم)','len',wl(o))}<div class="row">${fN('السماكة','t',o.t)}${fN('الارتفاع','h',o.h,10)}</div>${fC('لون الجدار (3D)','c',o.c)}<div class="row">${pAct('split','✂ تقسيم')}${pAct('dup','⧉ نسخ')}</div><div class="row" style="margin-top:6px">${pAct('del','🗑 حذف','dan')}</div><div class="mu" style="margin-top:8px">اسحب النقاط البيضاء لتغيير طرفي الجدار، والجدران المتصلة تتحرك معه.</div>`}
  else if(sel.k==='op'){h=`<div class="pt">🚪 ${ONAME[o.t]}</div>${fS('النوع','t',o.t,Object.entries(ONAME))}<div class="row">${fN('العرض','wd',o.wd)}${fN('الارتفاع','h',o.h)}</div>${o.t==='window'?fN('ارتفاع الجلسة عن الأرض','sl',o.sl):''}${o.t==='door'||o.t==='door2'?`<div class="row">${o.t==='door'?pAct('flipH','⇄ عكس المفصلة'):''}${pAct('flipS','⇅ عكس الفتح')}</div>`:''}<div class="row" style="margin-top:6px">${pAct('del','🗑 حذف','dan')}</div><div class="mu" style="margin-top:8px">اسحبه على الجدار لتغيير موضعه.</div>`}
- else if(sel.k==='room'){const A=Math.abs(polyArea(o.pts));h=`<div class="pt">⬠ غرفة / أرضية</div>${fT('الاسم','n',o.n)}${fS('نوع الأرضية','m',o.m,Object.entries(FLOORS).map(([k,v])=>[k,v.n]))}${fC('اللون','c',o.c||(FLOORS[o.m]||FLOORS.tile).c)}<div class="stat"><span>المساحة</span><b>${fmtA(A)}</b></div><div class="stat"><span>المحيط</span><b>${fmtL(polyPer(o.pts))}</b></div><div class="row" style="margin-top:8px">${pAct('walls','▬ جدران حولها')}${pAct('dup','⧉ نسخ')}</div><div class="row" style="margin-top:6px">${pAct('resetC','↺ اللون الافتراضي')}${pAct('del','🗑 حذف','dan')}</div>`}
+ else if(sel.k==='room'){const A=Math.abs(polyArea(o.pts)),rb=roomBox(o);h=`<div class="pt">⬠ غرفة / أرضية</div>${fT('الاسم','n',o.n)}<div class="card" style="padding:8px 10px;margin:6px 0"><b style="font-size:13px">📏 المقاسات</b>${isRect(o)?`<div class="row">${fN('العرض (سم)','rw',rb.w,10)}${fN('الطول (سم)','rl',rb.h,10)}</div>`:''}<label class="f">المساحة (م²)<input class="inp" type="number" data-k="ra" value="${(A/1e4).toFixed(2)}" step="0.5"></label><div class="mu">اكتب الرقم واضغط Enter. ${isRect(o)?'تتحرك الجدران والغرف المجاورة معها.':'الشكل غير مستطيل: تتغير الأرضية فقط.'}</div></div>${fS('نوع الأرضية','m',o.m,Object.entries(FLOORS).map(([k,v])=>[k,v.n]))}${fC('اللون','c',o.c||(FLOORS[o.m]||FLOORS.tile).c)}<div class="stat"><span>المساحة</span><b>${fmtA(A)}</b></div><div class="stat"><span>المحيط</span><b>${fmtL(polyPer(o.pts))}</b></div><div class="row" style="margin-top:8px">${pAct('walls','▬ جدران حولها')}${pAct('dup','⧉ نسخ')}</div><div class="row" style="margin-top:6px">${pAct('resetC','↺ اللون الافتراضي')}${pAct('del','🗑 حذف','dan')}</div>`}
  else if(sel.k==='item'){const d=DEF[o.t]||{};h=`<div class="pt">🛋 ${esc(d.n||'قطعة')}</div><div class="row">${fN('العرض','w',o.w)}${fN('العمق','d',o.d)}</div><div class="row">${fN('الارتفاع','h',o.h)}${fN('الارتفاع عن الأرض','z',o.z||0)}</div>${fN('الدوران (درجة)','r',o.r,15)}<div class="row">${pAct('rot-','⟲ ٩٠°')}${pAct('rot+','⟳ ٩٠°')}</div>${fC('اللون','c',o.c)}<div class="row" style="margin-top:6px">${pAct('dup','⧉ نسخ')}${pAct('front','⬆ للأمام')}${pAct('back','⬇ للخلف')}</div><div class="row" style="margin-top:6px">${pAct('resetS','↺ المقاس الأصلي')}${pAct('del','🗑 حذف','dan')}</div>`}
  else if(sel.k==='label'){h=`<div class="pt">T نص</div>${fT('النص','tx',o.tx)}${fN('الحجم (سم)','sz',o.sz||30,5)}${fC('اللون','c',o.c||'#222222')}<div class="row">${pAct('dup','⧉ نسخ')}${pAct('del','🗑 حذف','dan')}</div>`}
  else if(sel.k==='dim'){h=`<div class="pt">↔ خط قياس</div><div class="stat"><span>الطول</span><b>${fmtL(Math.hypot(o.x2-o.x1,o.y2-o.y1))}</b></div><div class="row" style="margin-top:8px">${pAct('del','🗑 حذف','dan')}</div>`}
  el.innerHTML=h;if(innerWidth<=760){el.classList.toggle('open',!!o)}}
 function setProp(k,v,el){const o=getSel(),f=F();
- if(!o){if(k==='pn'){cur.n=v||'مشروع';$('#pname').textContent=cur.n}else if(k==='grid'){if(v>0)D.grid=v}else if(k==='wt'){if(v>0)D.wt=v}else if(k==='wh'){if(v>0)D.wh=v}else if(k==='showLen'){cfg.showLen=v;saveCfg()}else if(k==='fn'){f.n=v;fillFloors()}else if(k==='fh'){if(v>0)f.h=v}render();return}
+ if(!o){if(k==='pn'){cur.n=v||'مشروع';$('#pname').textContent=cur.n}else if(k==='grid'){if(v>0)D.grid=v}else if(k==='wt'){if(v>0)D.wt=v}else if(k==='wh'){if(v>0)D.wh=v}else if(k==='showLen'){cfg.showLen=v;saveCfg()}else if(k==='fn'){f.n=v;fillFloors()}else if(k==='allF'){D.allF=v}else if(k==='fh'){if(v>0)f.h=v}render();return}
  if(typeof v==='number'&&isNaN(v))return;
  if(sel.k==='wall'&&k==='len'){if(v<=0)return;const L=wl(o)||1,J=joints(o.x2,o.y2,o);o.x2=r1(o.x1+(o.x2-o.x1)/L*v);o.y2=r1(o.y1+(o.y2-o.y1)/L*v);moveJ(J,o.x2,o.y2)}
  else if(['t','h','w','d','wd','sz'].includes(k)&&typeof v==='number'){if(v<=0)return;o[k]=v}
@@ -548,11 +549,12 @@ function setProp(k,v,el){const o=getSel(),f=F();
  else o[k]=v;
  if(sel.k==='room'&&k==='m'){o.c='';renderProps()}
  render()}
-$('#props').addEventListener('input',e=>{const el=e.target,k=el.dataset.k;if(!k)return;const v=el.type==='number'?parseFloat(el.value):el.type==='checkbox'?el.checked:el.value;setProp(k,v,el);commitSoon()});
-$('#props').addEventListener('change',e=>{if(e.target.dataset.k){commit();if(e.target.tagName==='SELECT')renderProps()}});
+$('#props').addEventListener('input',e=>{const el=e.target,k=el.dataset.k;if(!k||DIMK.includes(k))return;const v=el.type==='number'?parseFloat(el.value):el.type==='checkbox'?el.checked:el.value;setProp(k,v,el);commitSoon()});
+$('#props').addEventListener('change',e=>{const dk=e.target.dataset.k;if(DIMK.includes(dk)){applyDim(dk,parseFloat(e.target.value));return}if(dk){commit();if(e.target.tagName==='SELECT')renderProps()}});
 $('#props').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,o=getSel(),f=F();
  if(a==='del'){deleteSel();return}
  if(a==='dup'){duplicateSel();return}
+ if(a==='req'){reqPanel();return}
  if(a==='rot+'||a==='rot-'){o.r=((o.r+(a==='rot+'?90:-90))%360+360)%360}
  else if(a==='flipH')o.fh=o.fh?0:1;
  else if(a==='flipS')o.fs=(o.fs||1)*-1;
@@ -615,7 +617,7 @@ function build3D(){const A=[],Tr=[];
  const el=floorElevs(),show=all3?D.floors.map((f,i)=>i):[D.fi];
  let gb={x0:1e9,y0:1e9,x1:-1e9,y1:-1e9};
  for(const fi of show){const f=D.floors[fi],E=all3?el[fi]:0,b=bounds(f);gb={x0:Math.min(gb.x0,b.x0),y0:Math.min(gb.y0,b.y0),x1:Math.max(gb.x1,b.x1),y1:Math.max(gb.y1,b.y1)};const m=v=>v/100;
-  for(const r of f.rooms){if(r.pts.length<3)continue;const col=rgba(r.c||(FLOORS[r.m]||FLOORS.tile).c);const y=m(E+1);for(const t of earcut(r.pts)){const P=t.map(i=>[m(r.pts[i][0]),y,m(r.pts[i][1])]);tri(A,P[0],P[1],P[2],[0,1,0],col)}if(E>0){const pts=r.pts.map(p=>[m(p[0]),m(p[1])]);if(polyArea(r.pts)!==0&&r.pts.length===4)prism(pts,m(E-15),m(E+.5),rgba('#bdb8ae'),true)}}
+  for(const r of f.rooms){if(r.pts.length<3)continue;const col=rgba(r.c||(FLOORS[r.m]||FLOORS.tile).c);const y=m(E+(r.plot?.3:1.5));for(const t of earcut(r.pts)){const P=t.map(i=>[m(r.pts[i][0]),y,m(r.pts[i][1])]);tri(A,P[0],P[1],P[2],[0,1,0],col)}if(E>0){const pts=r.pts.map(p=>[m(p[0]),m(p[1])]);if(polyArea(r.pts)!==0&&r.pts.length===4)prism(pts,m(E-15),m(E+.5),rgba('#bdb8ae'),true)}}
   for(const w of f.walls){const g=wallSegs(w,f),t=w.t/2,Hw=low3?Math.min(w.h,110):w.h,col=rgba(w.c||'#f3efe8');const R=(a,b,n1,n2)=>[[m(w.x1+g.ux*a+g.nx*n1),m(w.y1+g.uy*a+g.ny*n1)],[m(w.x1+g.ux*b+g.nx*n1),m(w.y1+g.uy*b+g.ny*n1)],[m(w.x1+g.ux*b+g.nx*n2),m(w.y1+g.uy*b+g.ny*n2)],[m(w.x1+g.ux*a+g.nx*n2),m(w.y1+g.uy*a+g.ny*n2)]];
    for(const [a0,b0] of g.solid){const a=a0<=0?-t:a0,b=b0>=g.L?g.L+t:b0;prism(R(a,b,t,-t),m(E),m(E+Hw),col)}
    for(const {o,a,b} of g.ops){const glass=rgba('g');
@@ -721,7 +723,7 @@ function pickFile(m){fileMode=m;const f=$('#fileIn');f.value='';f.click()}
 $('#fileIn').onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{let o;try{o=JSON.parse(r.result)}catch(err){toast('الملف غير صالح');return}if(fileMode==='backup')showRestore(o);else if(fileMode==='proj')importProject(o)};r.readAsText(file)};
 
 function menuPanel(){if(!me)return;const it=[],A=(i,n,f)=>it.push([i,n,f]);
- A('📁','المشاريع',projectsPanel);A('➕','مشروع جديد',newProjPanel);A('🛋','مكتبة الأثاث',()=>{closePanel();openLib()});A('🧊','العرض ثلاثي الأبعاد',()=>{closePanel();setView(3)});
+ A('📁','المشاريع',projectsPanel);A('➕','مشروع جديد',newProjPanel);A('📝','بيانات العميل والمتطلبات',reqPanel);A('🛋','مكتبة الأثاث',()=>{closePanel();openLib()});A('🧊','العرض ثلاثي الأبعاد',()=>{closePanel();setView(3)});
  A('🖨','طباعة / PDF',()=>{closePanel();printView()});A('🖼','صورة المخطط PNG',exportPNG);A('📷','صورة ثلاثية الأبعاد',()=>{closePanel();setView(3);setTimeout(shot3D,400)});
  A('📤','تصدير المشروع كملف',exportProject);A('📥','استيراد مشروع',()=>pickFile('proj'));
  if(isMgr()){A('👥','المستخدمون',usersPanel);A('🏢','معلومات المكتب',ciPanel);A('🎨','المظهر',themePanel);A('💾','النسخ الاحتياطي',backupPanel)}
@@ -732,7 +734,7 @@ function menuPanel(){if(!me)return;const it=[],A=(i,n,f)=>it.push([i,n,f]);
  A('❓','طريقة الاستخدام',helpPanel);A('🌙','الوضع الداكن / الفاتح',()=>{toggleDark();menuPanel()});A('🚪','تسجيل الخروج',logout);
  openPanel('☰ القائمة',`<div class="card" style="display:flex;align-items:center;gap:10px"><div style="font-size:28px">${isDz()?'🛠':'👤'}</div><div><b>${esc(me.n||me.u)}</b><div class="mu">${isDz()?'المصمم':me.role==='manager'?'مدير':'مستخدم'}${civ('org')?' · '+esc(civ('org')):''}</div></div></div><div class="mgrid">${it.map((x,i)=>`<button class="mbtn" data-i="${i}"><i>${x[0]}</i>${x[1]}</button>`).join('')}</div><div class="cred credH">${credHTML()}</div><div class="mu" style="text-align:center;margin-top:6px">${esc(TX().t)} · ${LIC.m?'رقم النسخة: <span dir="ltr">'+esc(LIC.id)+'</span>':'النسخة الرئيسية'}</div>`,b=>{b.onclick=e=>{const x=e.target.closest('.mbtn');if(x)it[+x.dataset.i][2]()}})}
 
-function projectsPanel(){const L=visProjects();openPanel('📁 المشاريع',`<button class="btn" data-n="1">➕ مشروع جديد</button>${L.map(p=>`<div class="lrow${cur&&p.id===cur.id?' cur':''}"><div class="grow"><b>${esc(p.n)}</b><div class="mu">${new Date(p.u||Date.now()).toLocaleString('ar-IQ')} · ${p.d.floors.length} طابق${isMgr()&&p.o!==me.u?' · 👤 '+esc(userName(p.o)):''}</div></div><button class="btn sm" data-o="${p.id}">فتح</button><button class="btn sm sec" data-c="${p.id}">⧉ نسخ</button><button class="btn sm dan" data-d="${p.id}">🗑 حذف</button></div>`).join('')||'<div class="mu" style="margin:12px">لا توجد مشاريع</div>'}`,b=>{b.onclick=e=>{const t=e.target.closest('button');if(!t)return;
+function projectsPanel(){const L=visProjects();openPanel('📁 المشاريع',`<button class="btn" data-n="1">➕ مشروع جديد</button>${L.map(p=>`<div class="lrow${cur&&p.id===cur.id?' cur':''}"><div class="grow"><b>${esc(p.n)}</b><div class="mu">${new Date(p.u||Date.now()).toLocaleString('ar-IQ')} · ${p.d.floors.length} طابق${p.d.req&&p.d.req.cn?' · 👤 العميل: '+esc(p.d.req.cn):''}${isMgr()&&p.o!==me.u?' · 👤 '+esc(userName(p.o)):''}</div></div><button class="btn sm" data-o="${p.id}">فتح</button><button class="btn sm sec" data-c="${p.id}">⧉ نسخ</button><button class="btn sm dan" data-d="${p.id}">🗑 حذف</button></div>`).join('')||'<div class="mu" style="margin:12px">لا توجد مشاريع</div>'}`,b=>{b.onclick=e=>{const t=e.target.closest('button');if(!t)return;
  if(t.dataset.n)newProjPanel();
  else if(t.dataset.o){openProject(projects.find(p=>p.id===t.dataset.o));closePanel()}
  else if(t.dataset.c){persistNow();const s=projects.find(p=>p.id===t.dataset.c);const n={id:uid(),n:s.n+' (نسخة)',o:me.u,u:Date.now(),d:JSON.parse(JSON.stringify(s.d))};projects.push(n);sv('projects',projects);toast('نُسخ المشروع');projectsPanel()}
@@ -741,7 +743,7 @@ function delProject(id){const i=projects.findIndex(p=>p.id===id);if(i<0)return;c
  const rm=()=>{const j=projects.indexOf(p);if(j>=0)projects.splice(j,1);sv('projects',projects);if(cur===p){const n=visProjects()[0];if(n)openProject(n);else createProject('مشروع جديد')}};
  const back=()=>{if(!projects.includes(p))projects.splice(Math.min(i,projects.length),0,p);sv('projects',projects)};
  rm();pushU(back,rm);toast('حُذف المشروع. اضغط ↶ تراجع لاسترجاعه');projectsPanel()}
-function newProjPanel(){const tp=tplList();openPanel('➕ مشروع جديد',`<div class="card"><label class="f">اسم المشروع<input id="npN" class="inp" value="مشروع جديد"></label><h3 style="margin-top:12px">ابدأ من:</h3><div class="mgrid"><button class="mbtn" data-s="blank"><i>📄</i>مخطط فارغ</button><button class="mbtn" data-s="sample"><i>🏠</i>شقة نموذجية</button>${tp.map((t,i)=>`<button class="mbtn" data-s="t${i}"><i>📐</i>${esc(t.n)}</button>`).join('')}</div></div>`,b=>{b.onclick=e=>{const t=e.target.closest('[data-s]');if(!t)return;const s=t.dataset.s,n=$('#npN').value.trim()||'مشروع جديد';const d=s==='blank'?newData():s==='sample'?sampleData():JSON.parse(JSON.stringify(tp[+s.slice(1)].d));createProject(n,d);closePanel();toast('أُنشئ المشروع: '+n)}})}
+function newProjPanel(){const tp=tplList();openPanel('➕ مشروع جديد',`<div class="card"><label class="f">اسم المشروع<input id="npN" class="inp" value="مشروع جديد"></label><h3 style="margin-top:12px">ابدأ من:</h3><div class="mgrid"><button class="mbtn" data-s="blank"><i>📄</i>مخطط فارغ</button><button class="mbtn" data-s="req"><i>📝</i>من متطلبات العميل</button><button class="mbtn" data-s="sample"><i>🏠</i>شقة نموذجية</button>${tp.map((t,i)=>`<button class="mbtn" data-s="t${i}"><i>📐</i>${esc(t.n)}</button>`).join('')}</div></div>`,b=>{b.onclick=e=>{const t=e.target.closest('[data-s]');if(!t)return;const s=t.dataset.s,n=$('#npN').value.trim()||'مشروع جديد';if(s==='req'){createProject(n,newData());reqPanel();return}const d=s==='blank'?newData():s==='sample'?sampleData():JSON.parse(JSON.stringify(tp[+s.slice(1)].d));createProject(n,d);closePanel();toast('أُنشئ المشروع: '+n)}})}
 
 function usersPanel(){openPanel('👥 المستخدمون',`<div class="card"><h3>➕ إضافة مستخدم</h3><div class="row"><label class="f">الاسم<input id="uN" class="inp"></label><label class="f">اسم الدخول<input id="uU" class="inp" dir="ltr"></label></div><div class="row"><label class="f">كلمة المرور<input id="uP" class="inp" dir="ltr"></label><label class="f">الصلاحية<select id="uR" class="inp"><option value="user">مستخدم (يرى مشاريعه فقط)</option><option value="manager">مدير</option></select></label></div><button class="btn" data-a="add">إضافة</button></div>${users.map((u,i)=>`<div class="lrow"><div class="grow"><b>${esc(u.n||u.u)}</b><div class="mu"><span dir="ltr">${esc(u.u)}</span>${u.def?' · ⚠️ كلمة المرور الافتراضية':''}</div></div><select class="inp" data-r="${i}" style="width:auto"><option value="user"${u.role==='user'?' selected':''}>مستخدم</option><option value="manager"${u.role==='manager'?' selected':''}>مدير</option></select><input class="inp" data-pp="${i}" placeholder="كلمة مرور جديدة" style="width:150px" dir="ltr"><button class="btn sm sec" data-ps="${i}">حفظ</button>${me.u!==u.u?`<button class="btn sm dan" data-del="${i}">🗑</button>`:''}</div>`).join('')}`,b=>{
  b.onclick=e=>{const t=e.target.closest('button');if(!t)return;
@@ -761,7 +763,7 @@ function exportProject(){if(!cur)return;persistNow();dl((cur.n||'مشروع')+'.
 function importProject(o){if(!o||o.app!=='fp-project'||!o.d||!Array.isArray(o.d.floors)){toast('هذا ليس ملف مشروع لهذا البرنامج');return}createProject(o.n||'مشروع مستورد',o.d);closePanel();toast('📥 استُورد المشروع')}
 function actPanel(){const st=trialState();openPanel('✅ تفعيل النسخة',`<div class="card" style="max-width:440px"><div class="stat"><span>المرخَّص له</span><b>${esc(LIC.cn||'')}</b></div><div class="stat"><span>رقم النسخة</span><b dir="ltr">${esc(LIC.id)}</b></div><div class="stat"><span>الحالة</span><b>${isTrial()?'تجريبية: باقي '+st.left+' يوم':'مفعّلة ✅'}</b></div>${isTrial()?`<label class="f">رمز التفعيل<input id="apC" class="inp" dir="ltr" placeholder="XXXX-XXXX-XXXX" style="text-align:center;letter-spacing:2px"></label><button class="btn" id="apG" style="width:100%">🔑 تفعيل</button>`:''}<div class="cred credH">${credHTML()}</div></div>`,b=>{const g=b.querySelector('#apG');if(g)g.onclick=()=>{if(tryActivate($('#apC').value))actPanel()}})}
 function dzLogin(){const create=!DPH()&&!LIC.m;if(!DPH()&&LIC.m){toast('لا توجد كلمة مرور للمصمم في هذه النسخة');return}
- openPanel('🔒 دخول المصمم',`<div class="card" style="max-width:420px;margin:20px auto"><h3>${create?'إنشاء كلمة مرور المصمم (أول مرة)':'أدخل كلمة مرور المصمم'}</h3><label class="f">كلمة المرور<input id="dzP" type="password" class="inp" dir="ltr"></label>${create?'<label class="f">تأكيد كلمة المرور<input id="dzP2" type="password" class="inp" dir="ltr"></label><div class="mu">⚠️ احفظها جيداً، فهي لا تُسترجع إن نُسيت، وتُضمَّن في نسخ العملاء لتدخل بها عندهم.</div>':''}<button class="btn" id="dzGo" style="width:100%;margin-top:8px">دخول</button></div>`,b=>{const go=()=>{const p=$('#dzP').value;if(create){if(p.length<4){toast('أربعة أحرف على الأقل');return}if(p!==$('#dzP2').value){toast('كلمتا المرور غير متطابقتين');return}cfg.dph=H('dz|'+p);saveCfg()}else if(H('dz|'+p)!==DPH()){toast('كلمة مرور المصمم غير صحيحة');return}isDzF=true;closePanel();toast('🛠 دخلت كمصمم');if(!me){setSess({dz:1,h:DPH()});enter({u:'__dz',role:'manager',n:'المصمم'})}else{me.role='manager';renderProps()}};b.querySelector('#dzGo').onclick=go;b.onkeydown=e=>{if(e.key==='Enter')go()};setTimeout(()=>$('#dzP').focus(),60)})}
+ openPanel('🔒 دخول المصمم',`<div class="card" style="max-width:420px;margin:20px auto"><h3>${create?'إنشاء كلمة مرور المصمم (أول مرة)':'أدخل كلمة مرور المصمم'}</h3><label class="f">كلمة المرور<input id="dzP" type="password" class="inp" dir="ltr"></label>${create?'<label class="f">تأكيد كلمة المرور<input id="dzP2" type="password" class="inp" dir="ltr"></label><div class="mu">⚠️ احفظها جيداً، فهي لا تُسترجع إن نُسيت، وتُضمَّن في نسخ العملاء لتدخل بها عندهم.</div>':''}<button class="btn" id="dzGo" style="width:100%;margin-top:8px">دخول</button></div>`,b=>{const go=()=>{const p=$('#dzP').value;if(create){if(p.length<4){toast('أربعة أحرف على الأقل');return}if(p!==$('#dzP2').value){toast('كلمتا المرور غير متطابقتين');return}cfg.dph=H('dz|'+p);saveCfg()}else if(H('dz|'+p)!==DPH()){toast('كلمة مرور المصمم غير صحيحة');return}isDzF=true;closePanel();toast('🛠 دخلت كمصمم');if(!me){setSess({dz:1,h:DPH()});enter({u:'__dz',role:'manager',n:'المصمم'})}else{me.role='manager';renderProps()}};b.querySelector('#dzGo').onclick=go;b.onkeydown=e=>{if(e.key==='Enter')go()};setTimeout(()=>{const i=$('#dzP');if(i)i.focus()},60)})}
 function dzPanel(){const d=DZ(),ed=!LIC.m;openPanel('🛠 لوحة المصمم',`${LIC.m?`<div class="card"><h3>📄 معلومات النسخة</h3><div class="stat"><span>رقم النسخة</span><b dir="ltr">${esc(LIC.id)}</b></div><div class="stat"><span>العميل</span><b>${esc(LIC.cn||'')}</b></div><div class="stat"><span>النوع</span><b>${LIC.d?(T.act?'مفعّلة ✅':'تجريبية '+LIC.d+' يوم'):'كاملة'}</b></div><div class="stat"><span>تاريخ الإصدار</span><b>${new Date(LIC.is).toLocaleDateString('ar-IQ')}</b></div></div>`:''}
  <div class="card"><h3>👤 بيانات المصمم</h3>${ed?'':'<div class="mu">بيانات المصمم ثابتة في نسخ العملاء. عدّلها من النسخة الرئيسية ثم أصدر نسخة جديدة.</div>'}<label class="f">الاسم<input id="dN" class="inp" value="${esc(d.n||'')}" ${ed?'':'disabled'}></label><div class="row"><label class="f">رقم واتساب<input id="dW" class="inp" dir="ltr" value="${esc(d.wa||'')}" placeholder="07xxxxxxxxx" ${ed?'':'disabled'}></label><label class="f">تلكرام (معرّف أو رقم)<input id="dT" class="inp" dir="ltr" value="${esc(d.tg||'')}" ${ed?'':'disabled'}></label></div>${ed?'<button class="btn" id="dS">💾 حفظ</button>':''}</div>
  <div class="card"><h3>✏️ نصوص البرنامج</h3><label class="f">اسم البرنامج<input id="tT" class="inp" value="${esc(TX().t)}"></label><label class="f">الوصف<input id="tS" class="inp" value="${esc(TX().s)}"></label><button class="btn" id="tSv">💾 حفظ النصوص</button></div>
@@ -792,13 +794,127 @@ function helpPanel(){openPanel('❓ طريقة الاستخدام',`<div class="
 <div class="card"><h3>🧊 ثلاثي الأبعاد</h3><ul style="line-height:2;margin:0;padding-inline-start:20px"><li><b>دوران:</b> اسحب للدوران، وزر الفأرة الأيمن أو Shift للتحريك، والعجلة للتقريب.</li><li><b>تجوّل:</b> تمشَّ داخل الشقة. اسحب للنظر، وW/S أو الأسهم للحركة، أو أزرار الشاشة على الهاتف.</li><li><b>جدران منخفضة:</b> لرؤية التوزيع الداخلي من الأعلى.</li></ul></div>
 <div class="card"><h3>💾 الحفظ</h3><div>يُحفظ كل تغيير تلقائياً في المتصفح على هذا الجهاز. نزّل نسخة احتياطية بانتظام من القائمة، لأن مسح بيانات المتصفح يمسح المشاريع.</div></div>`)}
 
+/* ======= بيانات العميل ومتطلباته ======= */
+const REQF=[
+ ['g','👤 بيانات العميل'],
+ ['cn','اسم العميل','t',''],['cp','رقم الهاتف','t',''],['ca','العنوان / موقع الأرض','t',''],
+ ['g','📏 الأرض والبناء'],
+ ['pw','عرض الأرض (م)','n',10],['pl','طول الأرض (م)','n',20],['sf','الارتداد الأمامي (م)','n',3],['sb','الارتداد الخلفي (م)','n',2],['ss','الارتداد الجانبي (م)','n',0],['fl','عدد الطوابق','n',1],['fh','ارتفاع الطابق (م)','n',3],
+ ['g','🏠 الغرف المطلوبة'],
+ ['bd','غرف النوم','n',3],['ms','منها غرف ماستر','n',1],['bt','الحمامات','n',2],['lv','صالة معيشة','c',1],['gs','غرفة ضيوف / استقبال','c',1],['gr','كراج','c',1],['st','مخزن','c',0],['ld','غرفة غسيل','c',0],['kt','نوع المطبخ','s','closed',[['closed','مغلق'],['open','مفتوح على الصالة']]],
+ ['g','🎨 الطابع والميزانية'],
+ ['sty','طابع التصميم','s','modern',[['modern','حديث'],['classic','كلاسيكي'],['arabic','شرقي'],['minimal','بسيط']]],['bg','الميزانية التقريبية','t',''],['dl','موعد التسليم','t',''],['nt','ملاحظات وطلبات خاصة','a','']
+];
+const REQDEF=()=>{const o={};REQF.forEach(f=>{if(f[0]!=='g')o[f[0]]=f[3]});return o};
+const reqVals=()=>Object.assign(REQDEF(),(D&&D.req)||{});
+const STY={modern:{wall:'#f2f2f0',liv:'wood',bed:'wood',hall:'tile',sofa:'#6d7b8d',wood:'#8b6a4f',dark:'#3d4148'},classic:{wall:'#f3eadb',liv:'marble',bed:'carpet',hall:'marble',sofa:'#8a5a44',wood:'#6b4226',dark:'#4a3426'},arabic:{wall:'#efe3cf',liv:'stone',bed:'carpet',hall:'stone',sofa:'#9b3d2e',wood:'#7a4b2a',dark:'#3a2a20'},minimal:{wall:'#ffffff',liv:'conc',bed:'wood',hall:'conc',sofa:'#b9bcc2',wood:'#c9b79c',dark:'#555555'}};
+const AREA_EST={master:20,bed:14,bath:5,living:25,guest:20,kitchen:12,garage:20,store:6,laundry:5};
+function reqEstimate(q){const n=v=>Math.max(0,+v||0);const bd=n(q.bd),ms=Math.min(n(q.ms),bd);let a=ms*AREA_EST.master+(bd-ms)*AREA_EST.bed+n(q.bt)*AREA_EST.bath+AREA_EST.kitchen;if(q.lv)a+=AREA_EST.living;if(q.gs)a+=AREA_EST.guest;if(q.gr)a+=AREA_EST.garage;if(q.st)a+=AREA_EST.store;if(q.ld)a+=AREA_EST.laundry;return a*1.15}
+function reqText(q,blank){const L=[`*${blank?'نموذج متطلبات التصميم':'متطلبات التصميم'} — ${TX().t}*`];for(const f of REQF){if(f[0]==='g'){L.push('','*'+f[1].replace(/^\S+\s/,'')+'*');continue}const [k,l,t,,opts]=f;let v=q?q[k]:'';if(blank){L.push(`${l}: ${t==='c'?'نعم / لا':t==='s'?opts.map(o=>o[1]).join(' / '):'.........'}`);continue}if(t==='c')v=v?'نعم':'لا';else if(t==='s')v=(opts.find(o=>o[0]==v)||[,''])[1];if(v===''||v==null)continue;L.push(`${l}: ${v}`)}if(blank)L.push('','يرجى ملء البيانات وإعادة إرسالها. شكراً لكم');return L.join('\n')}
+function reqPanel(){if(!D)return;const r=reqVals();let h='',open=false;
+ for(const f of REQF){if(f[0]==='g'){if(open)h+='</div></div>';h+=`<div class="card"><h3>${f[1]}</h3><div class="rgrid">`;open=true;continue}const [k,l,t,,opts]=f,v=r[k];
+  if(t==='t')h+=`<label class="f">${l}<input class="inp" data-q="${k}" value="${esc(v)}"></label>`;
+  else if(t==='n')h+=`<label class="f">${l}<input class="inp" type="number" min="0" step="any" data-q="${k}" value="${esc(v)}"></label>`;
+  else if(t==='s')h+=`<label class="f">${l}<select class="inp" data-q="${k}">${opts.map(([a,b])=>`<option value="${a}"${a==v?' selected':''}>${b}</option>`).join('')}</select></label>`;
+  else if(t==='c')h+=`<label class="ck"><input type="checkbox" data-q="${k}" ${v?'checked':''}> ${l}</label>`;
+  else h+=`<label class="f" style="grid-column:1/-1">${l}<textarea class="inp" rows="3" data-q="${k}">${esc(v)}</textarea></label>`}
+ h+='</div></div><div class="card" id="rqSum"></div><div class="card"><div class="row"><button class="btn" id="rqS">💾 حفظ البيانات</button><button class="btn" id="rqG" style="background:var(--ok)">🏗 إنشاء مخطط مبدئي من المتطلبات</button></div><div class="row" style="margin-top:8px"><button class="btn sec" id="rqW">📤 إرسال الملخص للعميل (واتساب)</button><button class="btn sec" id="rqB">📋 إرسال نموذج فارغ ليملأه العميل</button></div><div class="mu" style="margin-top:8px">«إنشاء مخطط مبدئي» يستبدل طوابق هذا المشروع بتوزيع تلقائي حسب المتطلبات، ويمكنك التراجع عنه بـ ↶. بعد الإنشاء عدّل أي غرفة: اضغط عليها واكتب عرضها أو طولها أو مساحتها.</div></div>';
+ openPanel('📝 بيانات العميل والمتطلبات',h,b=>{
+  const read=()=>{const o={};b.querySelectorAll('[data-q]').forEach(i=>{const k=i.dataset.q;o[k]=i.type==='checkbox'?(i.checked?1:0):i.type==='number'?(i.value===''?0:+i.value):i.value.trim()});return o};
+  const sum=()=>{const q=read(),pa=(+q.pw||0)*(+q.pl||0),fw=Math.max(0,(+q.pw||0)-2*(+q.ss||0)),fl=Math.max(0,(+q.pl||0)-(+q.sf||0)-(+q.sb||0)),fa=fw*fl,nF=Math.max(1,+q.fl||1),need=reqEstimate(q),tot=fa*nF;
+   b.querySelector('#rqSum').innerHTML=`<h3>📊 ملخص المساحات</h3><div class="stat"><span>مساحة الأرض</span><b>${pa.toFixed(1)} م²</b></div><div class="stat"><span>مساحة البناء (${fw.toFixed(1)} × ${fl.toFixed(1)} م)</span><b>${fa.toFixed(1)} م²</b></div><div class="stat"><span>مجموع البناء لـ ${nF} طابق</span><b>${tot.toFixed(1)} م²</b></div><div class="stat"><span>المساحة التقريبية المطلوبة للغرف</span><b>${need.toFixed(0)} م²</b></div><div style="margin-top:8px;font-weight:700;color:${tot>=need?'var(--ok)':'var(--er)'}">${tot>=need?'✅ المساحة تكفي المتطلبات':'⚠️ المساحة أقل من المطلوب: قلّل الغرف أو زِد الطوابق أو الارتدادات'}</div>`};
+  b.oninput=sum;b.onchange=sum;sum();
+  b.querySelector('#rqS').onclick=()=>{D.req=read();commit();toast('حُفظت بيانات العميل')};
+  b.querySelector('#rqG').onclick=e=>{if(!twice(e.currentTarget))return;const q=read();const g=genPlan(q);D.req=q;D.floors=g.floors;D.fi=0;D.wh=g.wh;sel=null;draft=null;if(q.cn&&/^(مشروع جديد|شقة نموذجية)/.test(cur.n))cur.n='تصميم '+q.cn;commit();closePanel();refreshAll();setTimeout(fitView,30);toast('🏗 أُنشئ المخطط المبدئي. اضغط على أي غرفة لتعديل مقاسها')};
+  b.querySelector('#rqW').onclick=()=>{const q=read();const ph=normPhone(q.cp);window.open(`https://wa.me/${ph}?text=${encodeURIComponent(reqText(q))}`,'_blank')};
+  b.querySelector('#rqB').onclick=()=>{const q=read();const ph=normPhone(q.cp);window.open(`https://wa.me/${ph}?text=${encodeURIComponent(reqText(null,true))}`,'_blank')}},reqPanel)}
+
+/* ======= إنشاء مخطط من المتطلبات ======= */
+function interleave(beds,baths){const r=[];beds.forEach((b,i)=>{r.push(b);if(i%2===1&&baths.length)r.push(baths.shift())});return r.concat(baths.splice(0))}
+function matFor(k,S){return{bath:'tile',kitchen:'cer',garage:'conc',store:'cer',laundry:'tile',living:S.liv,guest:S.liv,bed:S.bed,master:S.bed}[k]||'tile'}
+function genPlan(q){const n=v=>Math.max(0,Math.round(+v||0));const S=STY[q.sty]||STY.modern;
+ const FW=Math.round(Math.max(5,(+q.pw||10)-2*(+q.ss||0))*10)*10,FL=Math.round(Math.max(5,(+q.pl||20)-(+q.sf||0)-(+q.sb||0))*10)*10;const trans=FL>FW*1.15,W=trans?FL:FW,L=trans?FW:FL;
+ const nF=clamp(n(q.fl)||1,1,4),FH=Math.round((+q.fh||3)*100);
+ const bd=n(q.bd),ms=Math.min(n(q.ms),bd),bt=n(q.bt);const R=(k,nm,w)=>({k,n:nm,w});
+ const beds=[];for(let i=0;i<bd;i++)beds.push(i<ms?R('master',ms>1?'غرفة ماستر '+AR(i+1):'غرفة نوم ماستر',1.45):R('bed','غرفة نوم '+AR(i-ms+1),1.1));
+ const baths=[];for(let i=0;i<bt;i++)baths.push(R('bath','حمام'+(bt>1?' '+AR(i+1):''),.6));
+ const fl=[];for(let i=0;i<nF;i++)fl.push({front:[],back:[]});const g=fl[0];
+ if(q.gr)g.front.push(R('garage','الكراج',1.65));if(q.gs)g.front.push(R('guest','غرفة الضيوف',1.3));if(q.lv)g.front.push(R('living','الصالة',1.6));g.front.push(R('kitchen','المطبخ',1.1));
+ const gb=nF===1?bd:Math.max(0,bd-(nF-1)*3);const bq=beds.slice(),groundBeds=bq.splice(bq.length-gb,gb),bathQ=baths.slice();
+ if(nF===1)g.back.push(...interleave(groundBeds,bathQ));
+ else{if(bathQ.length)g.back.push(bathQ.shift());g.back.push(...groundBeds);
+  for(let i=1;i<nF;i++){const left=nF-i,fb=bq.splice(0,Math.ceil(bq.length/left)),bb=bathQ.splice(0,Math.ceil(bathQ.length/left));const lst=(fb.length>=2?[R('living','صالة عائلية',1.4)]:[]).concat(interleave(fb,bb));const half=Math.ceil(lst.length/2);fl[i].front=lst.slice(0,half);fl[i].back=lst.slice(half);if(!fl[i].front.length)fl[i].front.push(R('living','صالة',1));if(!fl[i].back.length)fl[i].back.push(R('living','تراس / صالة',1))}}
+ if(q.st)g.back.push(R('store','مخزن',.55));if(q.ld)g.back.push(R('laundry','غرفة غسيل',.55));if(!g.back.length)g.back.push(R('store','مخزن',.6));
+ // موازنة الصفّين
+ for(const r of fl){while(r.back.length>r.front.length+2){const i=r.back.findIndex(x=>x.k==='bath'||x.k==='store'||x.k==='laundry');r.front.push(r.back.splice(i>=0?i:r.back.length-1,1)[0])}}
+ const corr=nF>1?150:130,fd=Math.round((L-corr)*.5/10)*10,yA=fd,yB=fd+corr;
+ const d=newData();d.floors=[];d.wh=FH;d.wt=20;
+ fl.forEach((rows,fi)=>{const f=newFloor(fi===0?'الطابق الأرضي':'الطابق '+AR(fi+1));f.h=FH;d.floors.push(f);
+  const wall=(x1,y1,x2,y2,t=20)=>{const w={id:uid(),x1,y1,x2,y2,t,h:FH,c:S.wall};f.walls.push(w);return w};
+  const op=(w,t,at,ex)=>f.ops.push(Object.assign({id:uid(),t,w:w.id,at:r1(at),fh:0,fs:1},ODEF[t],ex||{}));
+  const o1=wall(0,0,W,0,25),o2=wall(W,0,W,L,25),o3=wall(W,L,0,L,25),o4=wall(0,L,0,0,25),wA=wall(0,yA,W,yA),wB=wall(0,yB,W,yB);
+  f.rooms.push({id:uid(),n:'الممر',m:S.hall,c:'',pts:[[0,yA],[W,yA],[W,yB],[0,yB]]});
+  const entK=['living','guest','kitchen'].find(k=>rows.front.some(r=>r.k===k));const layRow=(list,top)=>{const y0=top?0:yB,y1=top?yA:L,tw=list.reduce((s,r)=>s+r.w,0);let x=0;
+   list.forEach((r,i)=>{const w2=i===list.length-1?W-x:Math.round(W*r.w/tw/10)*10,x0=x,x1=x+w2,cx=(x0+x1)/2;x=x1;
+    if(i>0){const p=list[i-1];const openK=q.kt==='open'&&((p.k==='living'&&r.k==='kitchen')||(p.k==='kitchen'&&r.k==='living'));if(!openK)wall(x0,y0,x0,y1)}
+    f.rooms.push({id:uid(),n:r.n,m:matFor(r.k,S),c:'',pts:[[x0,y0],[x1,y0],[x1,y1],[x0,y1]]});
+    const dw=Math.max(60,Math.min(r.k==='bath'?80:90,w2-40));op(top?wA:wB,r.k==='living'&&w2>=220?'door2':'door',cx,{wd:r.k==='living'&&w2>=220?160:dw,fs:top?-1:1});
+    const ow=top?o1:o3,oat=top?cx:W-cx;
+    if(r.k==='garage'&&top&&!trans)op(ow,'door2',oat,{wd:Math.min(260,w2-40),h:230});
+    else if(fi===0&&!trans&&top&&r.k===entK)op(ow,'door',oat,{wd:110,fs:1});
+    else if(r.k==='bath')op(ow,'window',oat,{wd:60,h:60,sl:150});
+    else if(r.k==='store')op(ow,'window',oat,{wd:60,h:50,sl:170});
+    else op(ow,'window',oat,{wd:Math.min(r.k==='living'||r.k==='guest'?180:120,w2-60),sl:r.k==='kitchen'?110:90});
+    furnish(f,r.k,x0,y0,x1,y1,top,S,trans)})};
+  layRow(rows.front,true);layRow(rows.back,false);
+  if(fi===0&&trans)op(o4,'door',L-(yA+corr/2),{wd:110});else op(o4,'window',L-(yA+corr/2),{wd:80});
+  if(trans){const gr=f.rooms.find(r=>r.n==='الكراج');if(gr&&fi===0){const bx=roomBox(gr);op(o4,'door2',L-(bx.y0+bx.y1)/2,{wd:Math.min(260,bx.h-40),h:230})}}
+  if(nF>1)f.items.push(Object.assign(newItem('stairs',W-12.5-160,yA+corr/2,90),{w:Math.min(110,corr-30),d:300,h:FH}));else op(o2,'window',yA+corr/2,{wd:80});
+  if(trans)reflectFloor(f);
+  if(fi===0){if(((+q.sf||0)+(+q.sb||0)+(+q.ss||0))>0){const ss=(+q.ss||0)*100,sf=(+q.sf||0)*100,sb=(+q.sb||0)*100;f.rooms.unshift({id:uid(),n:'الأرض',m:'grass',c:'',plot:1,pts:[[-ss,-sf],[FW+ss,-sf],[FW+ss,FL+sb],[-ss,FL+sb]]})}f.dims.push({id:uid(),x1:0,y1:-80,x2:FW,y2:-80},{id:uid(),x1:-80,y1:0,x2:-80,y2:FL});f.labels.push({id:uid(),x:FW/2,y:-160,tx:'↑ الواجهة الأمامية (الشارع)',sz:28})}
+ });
+ return{floors:d.floors,wh:FH}}
+function reflectFloor(f){f.walls.forEach(w=>{[w.x1,w.y1,w.x2,w.y2]=[w.y1,w.x1,w.y2,w.x2]});f.ops.forEach(o=>o.fs=-(o.fs||1));f.rooms.forEach(r=>r.pts=r.pts.map(p=>[p[1],p[0]]));f.items.forEach(i=>{[i.x,i.y]=[i.y,i.x];i.r=((270-i.r)%360+360)%360})}
+function furnish(f,k,x0,y0,x1,y1,top,S,trans){const m=14,W=x1-x0,Hh=y1-y0,cx=(x0+x1)/2,cy=(y0+y1)/2,ro=top?0:180;
+ const I=(t,x,y,r,ex)=>{const it=Object.assign(newItem(t,r1(x),r1(y),r),ex||{});f.items.push(it);return it};
+ const yO=dd=>top?y0+m+dd/2:y1-m-dd/2,yI=dd=>top?y1-m-dd/2:y0+m+dd/2;
+ if(k==='bed'||k==='master'){const t=(k==='master'||W>=330)?'bed2':'bed1',dd=DEF[t];if(W<dd.w+40||Hh<dd.d+70)return;I(t,cx,yO(dd.d),ro,{c:S.wood});if(W>=dd.w+150){I('night',cx-dd.w/2-30,yO(40),ro,{c:S.wood});I('night',cx+dd.w/2+30,yO(40),ro,{c:S.wood})}const ww=Math.min(200,Hh-130);if(ww>=100&&W>=dd.w+230)I('ward',x0+m+30,cy,270,{w:ww});if(k==='master'&&W>=dd.w+290)I('dresser',x1-m-22,cy,90)}
+ else if(k==='bath'){if(W<110||Hh<150)return;I('wc',x0+m+25,yO(65),ro);if(W>=150)I('basin',x0+m+50+40,yO(45),ro);if(W>=240&&Hh>=200)I('shower',x1-m-45,yO(90),ro)}
+ else if(k==='kitchen'){let xs=x0+m;const end=x1-m;const seq=['counter','stove','counter','ksink','counter','counter','counter','counter'];for(const t of seq){const w=DEF[t].w;if(xs+w>end-85)break;I(t,xs+w/2,yO(60),ro);if(t!=='stove')I('ucab',xs+w/2,yO(35),ro);xs+=w}if(end-xs>=80)I('fridge',end-40,yO(70),ro);const free=Hh-m*2-60-90;const ty=top?(y0+m+60+y1-m)/2:(y1-m-60+y0+m)/2;if(free>=200&&W>=300)I('dset',cx,ty,0,{c:S.wood});else if(free>=130&&W>=220)I('dtable',cx,ty,0,{c:S.wood,w:Math.min(160,W-60)})}
+ else if(k==='living'){if(W<260||Hh<260)return;I('tv',cx,yO(45),ro,{c:S.dark});const sd=Math.min(Hh*.62,Hh-m-110),sy=top?y0+m+sd:y1-m-sd;I('rug',cx,(yO(45)+sy)/2,90,{w:Math.min(200,Hh*.5),d:Math.min(280,W-80)});I('sofa3',cx,sy,(ro+180)%360,{c:S.sofa,w:Math.min(220,W-100)});I('ctable',cx,(yO(45)+sy)/2+(top?15:-15),0,{c:S.wood});if(W>=440){I('arm',cx-170,(yO(45)+sy)/2,270,{c:S.sofa});I('arm',cx+170,(yO(45)+sy)/2,90,{c:S.sofa})}I('plant',x1-m-30,yO(50),0)}
+ else if(k==='guest'){if(W<260||Hh<260)return;I('sofa3',cx,yO(90),ro,{c:S.sofa,w:Math.min(220,W-120)});I('arm',x0+m+45,cy,270,{c:S.sofa});if(W>=330)I('arm',x1-m-45,cy,90,{c:S.sofa});I('ctable',cx,cy,0,{c:S.wood})}
+ else if(k==='garage'){const a=W>=480&&Hh>=230,b=W>=230&&Hh>=480;if(trans?a:!b&&a)I('car',cx,cy,90);else if(b)I('car',cx,cy,0)}
+ else if(k==='store'){if(W>=120)I('shelf',cx,yO(35),ro)}
+ else if(k==='laundry'){I('wm',x0+m+30,yO(60),ro);if(W>=160)I('wm',x0+m+95,yO(60),ro)}}
+
+/* ======= تعديل المقاسات والمساحات ======= */
+function roomBox(o){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;o.pts.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});return{x0,y0,x1,y1,w:x1-x0,h:y1-y0}}
+function isRect(o){if(o.pts.length!==4)return false;const b=roomBox(o);return o.pts.every(p=>(Math.abs(p[0]-b.x0)<.6||Math.abs(p[0]-b.x1)<.6)&&(Math.abs(p[1]-b.y0)<.6||Math.abs(p[1]-b.y1)<.6))}
+function wallBounds(f){if(!f.walls.length)return null;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;f.walls.forEach(w=>{x0=Math.min(x0,w.x1,w.x2);y0=Math.min(y0,w.y1,w.y2);x1=Math.max(x1,w.x1,w.x2);y1=Math.max(y1,w.y1,w.y2)});return{x0,y0,x1,y1,w:x1-x0,h:y1-y0}}
+function transformFloor(f,fn){const P=(x,y)=>fn({x,y});
+ const opPos=f.ops.map(o=>{const w=wallById(o.w,f);if(!w)return null;const L=wl(w)||1,[a,b]=opRange(o,w),c=(a+b)/2;return P(w.x1+(w.x2-w.x1)/L*c,w.y1+(w.y2-w.y1)/L*c)});
+ f.walls.forEach(w=>{const a=P(w.x1,w.y1),b=P(w.x2,w.y2);w.x1=r1(a.x);w.y1=r1(a.y);w.x2=r1(b.x);w.y2=r1(b.y)});
+ f.rooms.forEach(r=>r.pts=r.pts.map(p=>{const q=P(p[0],p[1]);return[r1(q.x),r1(q.y)]}));
+ f.items.concat(f.labels).forEach(i=>{const q=P(i.x,i.y);i.x=r1(q.x);i.y=r1(q.y)});
+ f.dims.forEach(d=>{const a=P(d.x1,d.y1),b=P(d.x2,d.y2);d.x1=r1(a.x);d.y1=r1(a.y);d.x2=r1(b.x);d.y2=r1(b.y)});
+ f.ops.forEach((o,i)=>{const p=opPos[i],w=wallById(o.w,f);if(p&&w){const c=closest(p,w);o.at=r1(c.t*c.L)}})}
+const tgtFloors=()=>D.allF!==false&&D.floors.length>1?D.floors:[F()];
+function stretchAt(ax,at,delta){tgtFloors().forEach(f=>transformFloor(f,p=>{const q={x:p.x,y:p.y};if(p[ax]>=at-.5)q[ax]=p[ax]+delta;return q}))}
+const DIMK=['rw','rl','ra','bw','bl'];
+function applyDim(k,v){if(!(v>0))return;const o=getSel();
+ if(k==='rw'||k==='rl'){const b=roomBox(o);if(v<50){toast('أقل مقاس ٥٠ سم');renderProps();return}k==='rw'?stretchAt('x',b.x1,v-b.w):stretchAt('y',b.y1,v-b.h)}
+ else if(k==='ra'){const A=Math.abs(polyArea(o.pts)),t=v*1e4;if(A<1)return;const s=Math.sqrt(t/A);if(isRect(o)){let b=roomBox(o);stretchAt('x',b.x1,b.w*(s-1));b=roomBox(o);stretchAt('y',b.y1,b.h*(s-1))}else{const[cx,cy]=centroid(o.pts);o.pts=o.pts.map(p=>[r1(cx+(p[0]-cx)*s),r1(cy+(p[1]-cy)*s)])}}
+ else if(k==='bw'||k==='bl'){const b=wallBounds(F());if(!b)return;const ax=k==='bw'?'x':'y',o0=ax==='x'?b.x0:b.y0,cur0=ax==='x'?b.w:b.h;if(cur0<1)return;const s=v/cur0;tgtFloors().forEach(f=>transformFloor(f,p=>{const q={x:p.x,y:p.y};q[ax]=o0+(p[ax]-o0)*s;return q}))}
+ commit();renderProps();render();toast('✅ عُدّل المقاس، وتحرّكت الجدران والغرف المرتبطة به')}
+
+function reqPrint(){const q=D.req;if(!q||!Object.keys(q).length)return'';let rows='';for(const f of REQF){if(f[0]==='g'){rows+=`<tr><th colspan="2" style="background:#eee;text-align:right">${f[1]}</th></tr>`;continue}const [k,l,t,,opts]=f;let v=q[k];if(t==='c')v=v?'نعم':'لا';else if(t==='s')v=(opts.find(o=>o[0]==v)||[,''])[1];if(v===''||v==null)continue;rows+=`<tr><td style="width:40%">${l}</td><td style="text-align:right;white-space:pre-wrap">${AR(esc(v))}</td></tr>`}return`<div class="prPage">${isTrial()?'<div class="wm">نسخة تجريبية</div>':''}<div style="display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:8px"><b style="font-size:19px">${esc(civ('org')||TX().t)}</b><b>بيانات العميل ومتطلبات التصميم</b></div><table>${rows}</table><div class="prCredL" style="text-align:center;font-size:11px;color:#555;margin-top:16px;border-top:1px solid #ccc;padding-top:6px">© جميع الحقوق محفوظة${DZ().n?' للمصمم: '+esc(DZ().n):''}</div></div>`}
 /* ======= الطباعة والتصدير ======= */
 function planCanvas(f,maxW=1100,k=2){const b=bounds(f),pad=70;const bw=b.x1-b.x0+pad*2,bh=b.y1-b.y0+pad*2;const s=Math.min(maxW/bw,maxW*1.2/bh);const W=Math.round(bw*s),Hh=Math.round(bh*s)+34;const c=document.createElement('canvas');c.width=W*k;c.height=Hh*k;const ctx=c.getContext('2d');ctx.setTransform(k,0,0,k,0,0);renderPlan(ctx,W,Hh,{s,ox:(pad-b.x0)*s,oy:(pad-b.y0)*s},{print:true,floor:f});if(isTrial()){ctx.setTransform(1,0,0,1,0,0);wmark(ctx,c.width,c.height)}return c}
 function exportPNG(){if(!D)return;planCanvas(F(),1400).toBlob(b=>dl((cur.n||'مخطط')+' - '+(F().n||'')+'.png',b));toast('⬇ جارٍ تنزيل صورة المخطط')}
 function printView(){if(!D)return;persistNow();const dt=AR(new Date().toLocaleDateString('en-GB'));const org=civ('org'),addr=civ('addr'),mgr=civ('mgr'),role=civ('role');let h='';
- D.floors.forEach((f,i)=>{if(!f.walls.length&&!f.rooms.length&&!f.items.length)return;const url=planCanvas(f).toDataURL('image/png');let tot=0;const rows=f.rooms.map((r,j)=>{const a=Math.abs(polyArea(r.pts));tot+=a;return`<tr><td>${AR(j+1)}</td><td>${esc(r.n)}</td><td>${esc((FLOORS[r.m]||{}).n||'')}</td><td>${fmtA(a,1)}</td></tr>`}).join('');
+ D.floors.forEach((f,i)=>{if(!f.walls.length&&!f.rooms.length&&!f.items.length)return;const url=planCanvas(f).toDataURL('image/png');let tot=0;const rows=f.rooms.filter(r=>!r.plot).map((r,j)=>{const a=Math.abs(polyArea(r.pts));tot+=a;return`<tr><td>${AR(j+1)}</td><td>${esc(r.n)}</td><td>${esc((FLOORS[r.m]||{}).n||'')}</td><td>${fmtA(a,1)}</td></tr>`}).join('');
   h+=`<div class="prPage">${isTrial()?'<div class="wm">نسخة تجريبية</div>':''}<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:8px"><div><b style="font-size:19px">${esc(org||TX().t)}</b>${addr?`<div>${esc(addr)}</div>`:''}</div><div style="text-align:left"><b style="font-size:16px">${esc(cur.n)}</b><div>${esc(f.n||'')}</div><div>${dt}</div></div></div><img src="${url}" style="width:100%;display:block">${rows?`<table><tr><th>ت</th><th>الغرفة</th><th>الأرضية</th><th>المساحة</th></tr>${rows}<tr><th colspan="3">المجموع</th><th>${fmtA(tot,1)}</th></tr></table>`:''}${mgr?`<div style="margin-top:28px;text-align:left;padding-left:30px">${esc(role||'المدير')}<br><b>${esc(mgr)}</b></div>`:''}<div class="prCredL" style="text-align:center;font-size:11px;color:#555;margin-top:16px;border-top:1px solid #ccc;padding-top:6px">© جميع الحقوق محفوظة${DZ().n?' للمصمم: '+esc(DZ().n):''}${DZ().wa?' · واتساب: '+AR(esc(DZ().wa)):''}</div></div>`});
- $('#prB').innerHTML=h||'<div class="prPage">المخطط فارغ</div>';$('#prv').classList.add('show');$('#prCred').onchange();}
+ h+=reqPrint();$('#prB').innerHTML=h||'<div class="prPage">المخطط فارغ</div>';$('#prv').classList.add('show');$('#prCred').onchange();}
 $('#prCred').onchange=()=>$$('.prCredL').forEach(e=>e.style.display=$('#prCred').checked?'':'none');
 $('#prP').onclick=()=>window.print();$('#prD').onclick=exportPNG;$('#prX').onclick=()=>$('#prv').classList.remove('show');
 
